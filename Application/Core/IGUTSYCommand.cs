@@ -9,7 +9,7 @@ public interface IGUTSYCommand
     /// </summary>
     /// <param name="parameters"></param>
     /// <returns></returns>
-    public JToken Execute(JToken parameters);
+    public JToken? Execute(JToken? parameters);
 
     /// <summary>
     /// Gets command unique identifier

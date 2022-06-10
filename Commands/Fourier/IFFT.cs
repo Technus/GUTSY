@@ -23,34 +23,38 @@ public class IFFT : IGUTSYCommand
     /// <summary>
     /// Computes the reverse FFT
     /// </summary>
-    /// <param name="parameters">JSON Array of stringified complex values</param>
+    /// <param name="array">JSON Array of stringified complex values</param>
     /// <returns>JSON Array of numeric values</returns>
     /// <exception cref="OverflowException"></exception>
     /// <exception cref="FormatException"></exception>
     /// <exception cref="ArgumentException"></exception>
-    public JToken Execute(JToken parameters)
+    public JToken? Execute(JToken? parameters)
     {
-        if (parameters.Count() < 3) throw new ArgumentException("Not enough content: "+parameters);
-        var input = parameters?.ToObject<Complex[]>() ?? Array.Empty<Complex>();
-        using var pinIn = new PinnedArray<Complex>(input);
-        using var pinOut = new FftwArrayDouble(GetRealBufferSize(pinIn.GetSize()));
-
-        //DC needs no scaling to RMS
-        var scale = 1 / Math.Sqrt(2);//AC to RMS
-        for (int i = 1; i < input.Length; i++)
+        if(parameters is JArray array)
         {
-            input[i] *= scale;
+            if (array.Count() < 3) throw new ArgumentException("Not enough content: " + array);
+            var input = array?.ToObject<Complex[]>() ?? Array.Empty<Complex>();
+            using var pinIn = new PinnedArray<Complex>(input);
+            using var pinOut = new FftwArrayDouble(GetRealBufferSize(pinIn.GetSize()));
+
+            //DC needs no scaling to RMS
+            var scale = 1 / Math.Sqrt(2);//AC to RMS
+            for (int i = 1; i < input.Length; i++)
+            {
+                input[i] *= scale;
+            }
+
+            DFT.IFFT(pinIn, pinOut);
+
+            var result = new JArray();
+            for (int i = 0, len = pinOut.Length; i < len; i++)
+            {
+                result.Add(JToken.FromObject(pinOut[i]));
+            }
+
+            return result;
         }
-
-        DFT.IFFT(pinIn, pinOut);
-
-        var result = new JArray();
-        for (int i = 0, len = pinOut.Length; i < len; i++)
-        {
-            result.Add(JToken.FromObject(pinOut[i]));
-        }
-
-        return result;
+        return null;
     }
 
     public string GetID()
