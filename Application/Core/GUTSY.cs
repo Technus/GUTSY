@@ -1,19 +1,25 @@
 ﻿using GeneralUnifiedTestSystemYard.Core.Numerics;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using Newtonsoft.Json.Serialization;
+using System.Runtime.Serialization;
 using System.Security;
-using System.Text;
 
 namespace GeneralUnifiedTestSystemYard.Core;
 
 public static class GUTSY
 {
+    public static SortedDictionary<string, IGUTSYCommand> Commands { get; } = new();
+
+    /// <exception cref="IOException"></exception>
+    /// <exception cref="UnauthorizedAccessException"></exception>
+    /// <exception cref="SecurityException"></exception>
     static GUTSY()
+    {
+        InitializeJsonConvert();
+        Commands.LoadFromFolder("*GUTSY Command*.dll");
+    }
+
+    public static void InitializeJsonConvert()
     {
         JsonConvert.DefaultSettings = () => new()
         {
@@ -22,123 +28,138 @@ public static class GUTSY
             {
                 new ComplexJsonConverter(),
             },
+            ContractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new CamelCaseNamingStrategy
+                {
+                    ProcessDictionaryKeys = false,
+                },
+            },
         };
-
-        LoadCommandsFromFolder();
     }
 
-    public static Dictionary<string, IGUTSYCommand> Commands { get; } = new();
-
-    /// <exception cref="IOException"></exception>
-    /// <exception cref="UnauthorizedAccessException"></exception>
-    /// <exception cref="SecurityException"></exception>
-    public static void LoadCommandsFromFolder(string path=".")
+    /// <summary>
+    /// Just a string wrapper for Process based on objects, allows direct JSON string IO.
+    /// </summary>
+    /// <param name="requestStringMaybe"></param>
+    /// <returns></returns>
+    public static string ProcessJSON(string? requestStringMaybe)
     {
-        if(Directory.Exists(path))
+        GUTSYResponse response;
+        if (requestStringMaybe is string requestString && requestString.Trim().Length>0)
         {
-            foreach (var file in Directory.EnumerateFiles(path, "* GUTSY Commands.dll"))
+            try
             {
-                LoadCommandsFromDLL(file);
+                var requestMaybe = JsonConvert.DeserializeObject<GUTSYRequest?>(requestString);
+                response = Process(requestMaybe);
             }
-            foreach (var dir in Directory.EnumerateDirectories(path))
+            catch (Exception e)
             {
-                LoadCommandsFromFolder(dir);
-            }
-        }
-    }
-
-    /// <exception cref="FileLoadException"></exception>
-    /// <exception cref="FileNotFoundException"></exception>
-    /// <exception cref="BadImageFormatException"></exception>
-    /// <exception cref="NotSupportedException"></exception>
-    /// <exception cref="TargetInvocationException"></exception>
-    /// <exception cref="MethodAccessException"></exception>
-    /// <exception cref="MemberAccessException"></exception>
-    /// <exception cref="InvalidComObjectException"></exception>
-    /// <exception cref="COMException"></exception>
-    /// <exception cref="TypeLoadException"></exception>
-    /// <exception cref="SecurityException"></exception>
-    /// <exception cref="PathTooLongException"></exception>
-    public static void LoadCommandsFromDLL(string path)
-    {
-        foreach (var type in Assembly.LoadFile(Path.GetFullPath(path)).GetExportedTypes())
-        {
-            if (type.IsAssignableTo(typeof(IGUTSYCommand)))
-            {
-                if (Activator.CreateInstance(type) is IGUTSYCommand command)
+                response = new()
                 {
-                    Commands.Add(command.GetID(), command);
-                }
-            }
-        }
-    }
-
-    public static IGUTSYCommand GetCommandByName(string name)
-    {
-        return Commands.Where(kv => kv.Key.Equals(name)).Select(kv => kv.Value).First();
-    }
-
-    public static Dictionary<string, IGUTSYCommand> GetCommandsByName(string name)
-    {
-        return new(Commands.Where(kv => kv.Key.EndsWith(name)).Select(kv => kv.Value).ToDictionary(v => v.GetID()));
-    }
-
-    public static Dictionary<string, IGUTSYCommand> GetCommandsInPath(string path)
-    {
-        return new(Commands.Where(kv => kv.Key.StartsWith(path) && !kv.Key[path.Length..].Contains('.')).Select(kv => kv.Value).ToDictionary(v => v.GetID()));
-    }
-
-    public static Dictionary<string, IGUTSYCommand> GetCommandsInPathRecursive(string path)
-    {
-        return new(Commands.Where(kv => kv.Key.StartsWith(path)).Select(kv=>kv.Value).ToDictionary(v=>v.GetID()));
-    }
-
-    /// <exception cref="JsonReaderException"></exception>
-    public static JObject Process(JObject? requestMaybe)
-    {
-        var response = new JObject();
-        if (requestMaybe is JObject request)
-        {
-            if (request?["command"]?.Value<string>() is string commandID)
-            {
-                if (GetCommandByName(commandID) is IGUTSYCommand command)
-                {
-                    response["command"] = request["command"];
-                    try
-                    {
-                        if (command.Execute(request["parameters"]) is JToken token)
-                        {
-                            response["result"] = token;
-                        }
-                        else
-                        {
-                            response["result"] = null;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        response["error"] = JToken.FromObject($"Failed to run command: {commandID}");
-                        response["exception"] = JToken.FromObject(e);
-                        response["request"] = request;
-                    }
-                }
-                else
-                {
-                    response["error"] = JToken.FromObject($"Missing command with name: {commandID}");
-                    response["request"] = request;
-                }
-            }
-            else
-            {
-                response["error"] = JToken.FromObject($"Missing command name");
-                response["request"] = request;
+                    Exception = new RequestUndefinedException("Cannot parse request", e)
+                };
             }
         }
         else
         {
-            response["error"] = JToken.FromObject($"Missing request");
+            response = Process(null);
         }
+        return JsonConvert.SerializeObject(response);
+    }
 
+    public static GUTSYResponse Process(GUTSYRequest? requestMaybe)
+    {
+        var response = new GUTSYResponse();
+        if (requestMaybe is GUTSYRequest request)
+        {
+            response.Command = request.Command;
+            response.Guid = request.Guid;
+
+            if (request.Command is string commandID)
+            {
+                if (Commands.GetFirstByName(commandID) is IGUTSYCommand command)
+                {
+                    try
+                    {
+                        //response.Parameters = request.Parameters; // Don't send input back
+                        response.Result = command.Execute(request.Parameters);
+                    }
+                    catch (Exception e)
+                    {
+                        response.Parameters = request.Parameters;
+                        response.Exception = new CommandFailedExcpetion($"Failed to run command",e);
+                    }
+                }
+                else
+                {
+                    response.Parameters = request.Parameters;
+                    response.Exception = new CommandUndefinedException($"Missing command with name: {commandID}");
+                }
+            }
+            else
+            {
+                response.Parameters = request.Parameters;
+                response.Exception = new CommandUndefinedException("Command Name unspecified");
+            }
+        }
         return response;
+    }
+}
+
+public class RequestUndefinedException : Exception
+{
+    public RequestUndefinedException()
+    {
+    }
+
+    public RequestUndefinedException(string? message) : base(message)
+    {
+    }
+
+    public RequestUndefinedException(string? message, Exception? innerException) : base(message, innerException)
+    {
+    }
+
+    protected RequestUndefinedException(SerializationInfo info, StreamingContext context) : base(info, context)
+    {
+    }
+}
+
+public class CommandUndefinedException : Exception
+{
+    public CommandUndefinedException()
+    {
+    }
+
+    public CommandUndefinedException(string? message) : base(message)
+    {
+    }
+
+    public CommandUndefinedException(string? message, Exception? innerException) : base(message, innerException)
+    {
+    }
+
+    protected CommandUndefinedException(SerializationInfo info, StreamingContext context) : base(info, context)
+    {
+    }
+}
+
+public class CommandFailedExcpetion : Exception
+{
+    public CommandFailedExcpetion()
+    {
+    }
+
+    public CommandFailedExcpetion(string? message) : base(message)
+    {
+    }
+
+    public CommandFailedExcpetion(string? message, Exception? innerException) : base(message, innerException)
+    {
+    }
+
+    protected CommandFailedExcpetion(SerializationInfo info, StreamingContext context) : base(info, context)
+    {
     }
 }

@@ -16,8 +16,4 @@
     <PackageReference Include="NJsonSchema" Version="10.7.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Localization\" />
-  </ItemGroup>
-
 </Project>

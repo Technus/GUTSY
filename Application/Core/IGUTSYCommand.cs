@@ -2,7 +2,7 @@
 
 namespace GeneralUnifiedTestSystemYard.Core;
 
-public interface IGUTSYCommand
+public interface IGUTSYCommand : IIdentifiable
 {
     /// <summary>
     /// JSON in JSON out
@@ -10,10 +10,4 @@ public interface IGUTSYCommand
     /// <param name="parameters"></param>
     /// <returns></returns>
     public JToken? Execute(JToken? parameters);
-
-    /// <summary>
-    /// Gets command unique identifier
-    /// </summary>
-    /// <returns></returns>
-    public string GetID();
 }
