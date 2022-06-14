@@ -12,9 +12,20 @@ public static class IDictionaryExtensions
     public static void LoadFromFolder<Thing>(
         this IDictionary<string, Thing> dictionary,
         string filter = "*.dll",
-        string path = ".")
+        string path = "")
         where Thing : IIdentifiable
     {
+        if (path == "")
+        {
+            try
+            {
+                path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location ?? ".")??".";
+            }
+            catch
+            {
+                path = ".";
+            }
+        }
         if (Directory.Exists(path))
         {
             foreach (var file in Directory.EnumerateFiles(path, filter))
