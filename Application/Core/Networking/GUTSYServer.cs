@@ -18,11 +18,17 @@ public static class GUTSYServer
 
     /// <exception cref="FormatException"></exception>
     /// <exception cref="SocketException"></exception>
+    /// <exception cref="SecurityException"></exception>
+    /// <exception cref="NotSupportedException"></exception>
+    /// <exception cref="AbandonedMutexException"></exception>
     public static void StartListeningOnAddress(int port = defaultPort, string address = defaultHost) =>
         StartListening(port, IPAddress.Parse(address));
 
     /// <exception cref="FormatException"></exception>
     /// <exception cref="SocketException"></exception>
+    /// <exception cref="SecurityException"></exception>
+    /// <exception cref="NotSupportedException"></exception>
+    /// <exception cref="AbandonedMutexException"></exception>
     public static void StartListeningOnLocalHost(int port = defaultPort) =>
         StartListeningOnAddress(port, defaultHost);
 
@@ -30,6 +36,7 @@ public static class GUTSYServer
     /// <exception cref="SecurityException"></exception>
     /// <exception cref="NotSupportedException"></exception>
     /// <exception cref="AbandonedMutexException"></exception>
+    /// <exception cref="FormatException"></exception>
     public static void StartListening(int port = defaultPort, IPAddress? ip = null)
     {
         var ipAddress = ip ?? Dns.GetHostEntry(
@@ -97,8 +104,9 @@ public static class GUTSYServer
                 if (state.StringBuilder.ToString() is string content && content.IndexOf('\n') > -1)
                 {
                     // Send the data back to the client.
-                    Process(handler, state.StringBuilder);
+                    var returnStr=Process(state.StringBuilder);
                     state.StringBuilder.Clear();
+                    Send(handler, Encoding.ASCII.GetBytes(returnStr));
                 }
                 else
                 {
@@ -110,10 +118,9 @@ public static class GUTSYServer
         }
     }
 
-    private static void Process(Socket handler, StringBuilder data) //TODO make async?  
+    private static string Process(StringBuilder data) //TODO make async?  
     {
-        var result = GUTSY.Process(data);//New Line delimited json
-        Send(handler, result);
+        return GUTSY.ProcessJSON(data.ToString());
     }
 
     /// <exception cref="SocketException"></exception>
@@ -121,12 +128,13 @@ public static class GUTSYServer
     private static void Send(Socket handler, byte[] data)
     {
         // Convert the string data to byte data using ASCII encoding.  
-        var byteData = Encoding.ASCII.GetBytes(data);
+        //var byteData = Encoding.ASCII.GetBytes(data);
 
         // Begin sending the data to the remote device.  
         handler.BeginSend(data, 0, data.Length, 0, new AsyncCallback(SendCallback), handler);
     }
 
+    /// <exception cref="IOException"></exception>
     private static void SendCallback(IAsyncResult ar)
     {
         try
