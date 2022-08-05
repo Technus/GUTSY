@@ -9,6 +9,7 @@ namespace GeneralUnifiedTestSystemYard.Core;
 public static class GUTSY
 {
     public static SortedDictionary<string, IGUTSYCommand> Commands { get; } = new();
+    public static SortedDictionary<string, IGUTSYExtension> Extensions { get; } = new();
 
     /// <exception cref="IOException"></exception>
     /// <exception cref="UnauthorizedAccessException"></exception>
@@ -17,6 +18,7 @@ public static class GUTSY
     {
         InitializeJsonConvert();
         Commands.LoadFromFolder("*GUTSY Command*.dll");
+        Commands.LoadFromFolder("*GUTSY Extension*.dll");
     }
 
     public static void InitializeJsonConvert()
