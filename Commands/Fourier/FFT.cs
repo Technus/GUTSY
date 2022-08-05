@@ -6,6 +6,8 @@ namespace GeneralUnifiedTestSystemYard.Commands.Fourier;
 
 public class FFT : IGUTSYCommand
 {
+    public string GetID() => "FFT";
+    
     /// <summary>
     /// Computes the FFT
     /// </summary>
@@ -35,10 +37,5 @@ public class FFT : IGUTSYCommand
             return result;
         }
         return null;
-    }
-
-    public string GetID()
-    {
-        return "FFT";
     }
 }

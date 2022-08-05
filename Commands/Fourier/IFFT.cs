@@ -7,6 +7,8 @@ namespace GeneralUnifiedTestSystemYard.Commands.Fourier;
 
 public class IFFT : IGUTSYCommand
 {
+    public string GetID() => "IFFT";
+
     /// <exception cref="OverflowException"></exception>
     public static int[] GetRealBufferSize(int[] complexBufferSize)
     {
@@ -55,10 +57,5 @@ public class IFFT : IGUTSYCommand
             return result;
         }
         return null;
-    }
-
-    public string GetID()
-    {
-        return "IFFT";
     }
 }
