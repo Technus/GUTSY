@@ -9,19 +9,19 @@ namespace GeneralUnifiedTestSystemYard.Commands.VISA;
 /// <summary>
 /// VISA.NET Shared Components 5.11.0 v2.0.50727 (Taken from NI VISA.NET 21.5 v4.0.30319)
 /// </summary>
-public static class VisaWrapper
+public class VisaWrapper : IGUTSYExtension
 {
-    private const string wildcard = "?*";
-    /// <summary>
-    /// Shouldnt be set
-    /// </summary>
-    public static IResourceManager? ResourceManager { get; private set; }
-    public static SortedDictionary<string, IVisaResourceManagerSupplier> ManagerSuppliers { get; } = new();
-    private static SortedDictionary<string, IVisaSessionResolver> SessionResolvers { get; } = new();
-    private static SortedDictionary<string, IVisaDeviceResolver> DeviceResolvers { get; } = new();
+    public const string wildcard = "?*";
+    public IResourceManager? ResourceManager { get; private set; }
+    public SortedDictionary<string, IVisaResourceManagerSupplier> ManagerSuppliers { get; } = new();
+    public SortedDictionary<string, IVisaSessionResolver> SessionResolvers { get; } = new();
+    public SortedDictionary<string, IVisaDeviceResolver> DeviceResolvers { get; } = new();
 
     /// <exception cref="DllNotFoundException"></exception>
-    static VisaWrapper()
+    /// <exception cref="IOException"></exception>
+    /// <exception cref="UnauthorizedAccessException"></exception>
+    /// <exception cref="SecurityException"></exception>
+    VisaWrapper()
     {
         ManagerSuppliers.LoadFromFolder("*GUTSY VISA Resource Manager*.dll");
         SessionResolvers.LoadFromFolder("*GUTSY VISA Session Resolver*.dll");
@@ -38,26 +38,26 @@ public static class VisaWrapper
 
         if(ResourceManager is null)
         {
+
             throw new DllNotFoundException("Could not find a working VISA resource manager");
         }
     }
+    public string GetID() => "VisaWrapper";
 
     /// <exception cref="AggregateException"></exception>
-    public static SortedSet<string> FindDevices(IResourceManager resourceManager,string query = wildcard)
+    public SortedSet<string> FindDevices(IResourceManager resourceManager,string query = wildcard)
     {
         List<string> list = new();
         var found = resourceManager.Find(query);
 
-        var p = Parallel.ForEach(found, item => {
-            list.AddRange(ResolveSessionAbstractionLayer(item));
-        });
+        var parallel = Parallel.ForEach(found, item => list.AddRange(ResolveSessionAbstractionLayer(item)));
 
-        while (!p.IsCompleted) { }
+        while (!parallel.IsCompleted) { }
 
-        return new SortedSet<string>(list);
+        return new(list);
     }
 
-    public static Hardware Open(string resource, AccessModes mode = AccessModes.None, int openTimeout = 1000)
+    public IVisaHardware Open(string resource, AccessModes mode = AccessModes.None, int openTimeout = 1000)
     {
         if (resource is string)
         {
@@ -65,7 +65,7 @@ public static class VisaWrapper
             {
                 try
                 {
-                    var session = item.Invoke(resourceManager, resource);
+                    var session = item.Value.ResolveSession(ResourceManager, resource);
                     if (session is IVisaSession)
                     {
                         return new Hardware(resource, session);
@@ -77,7 +77,7 @@ public static class VisaWrapper
         return new Hardware(resource, resourceManager.Open(resource, mode, openTimeout));
     }
 
-    public static List<string> ResolveSessionAbstractionLayer(string resource)
+    public List<string> ResolveSessionAbstractionLayer(string resource)
     {
         List<string> sessionsGenerated = new List<string>();
         if (resource is string)
@@ -98,15 +98,15 @@ public static class VisaWrapper
         return sessionsGenerated;
     }
 
-    public static List<IDevice> ResolveDeviceAbstractionLayer(Hardware resource)
+    public List<IVisaDevice> ResolveDeviceAbstractionLayer(IVisaHardware resource)
     {
-        List<IDevice> devicesGenerated = new List<IDevice>();
+        List<IVisaDevice> devicesGenerated = new List<IVisaDevice>();
         if (resource.Valid)
         {
             foreach (var generator in Devices)
             {
                 var device = generator.Invoke(resource);
-                if (device is IDevice)
+                if (device is IVisaDevice)
                 {
                     devicesGenerated.Add(device);
                 }

@@ -1,4 +1,5 @@
 ﻿using Ivi.Visa;
+using System.Management;
 using System.Text;
 
 namespace GeneralUnifiedTestSystemYard.Commands.VISA;
@@ -8,6 +9,10 @@ public class AR488 : IVisaSessionResolver
     private readonly Dictionary<string, AR488Interface> interfaces = new();
     private const string identifyQuery1 = "*IDN?\n";
     private const string identifyQuery2 = "ID?\n";//todo check
+    private const string serialName = "Arduino";
+    private const string serialVidPid = "VID_2341&PID_8037";
+
+    public string GetID() => "AR488";
 
     public List<string> ResolveResources(IResourceManager resourceManager, string resource)
     {
@@ -17,7 +22,8 @@ public class AR488 : IVisaSessionResolver
             using var session = resourceManager.Open(resource, AccessModes.None, 1000);
             if (session is ISerialSession serial)
             {
-                if (serial.HardwareInterfaceName.Contains("Arduino"))
+                if (serial.HardwareInterfaceName.Contains(serialName) ||
+                    GetSerialPortData(serial.HardwareInterfaceNumber).Contains(serialVidPid))
                 {
                     var timeout = serial.TimeoutMilliseconds;
                     serial.TimeoutMilliseconds = 100;
@@ -43,7 +49,21 @@ public class AR488 : IVisaSessionResolver
                         if (TryFindInterface(serial)) goto found;
                         goto notFound;
 
-                    found:
+                    found: 
+                        try
+                        {
+                            serial.RawIO.Write("++read\n");
+                            serial.RawIO.Write("++read\n");
+                            try
+                            {
+                                while (true)//untill timout
+                                {
+                                    serial.RawIO.Read(1);
+                                }
+                            }
+                            catch { }
+                        }
+                        catch { }
                         output.Add("GPIB::INTFC::AR488::" + resource);
 
                         //Thread.Sleep(100);
@@ -86,7 +106,8 @@ public class AR488 : IVisaSessionResolver
     /// <exception cref="FormatException"></exception>
     /// <exception cref="OverflowException"></exception>
     /// <exception cref="NotImplementedException"></exception>
-    public IVisaSession ResolveSession(IResourceManager resourceManager, string resource)
+    /// <exception cref="ArgumentException"></exception>
+    public IVisaSession? ResolveSession(IResourceManager resourceManager, string resource)
     {
         if (resource.Contains("AR488"))
         {
@@ -130,15 +151,35 @@ public class AR488 : IVisaSessionResolver
                 {
                     return new AR488Session(interfaces[parent], short.Parse(path[2]), short.Parse(path[4]));
                 }
+                else if(ResolveSession(resourceManager, parent) is AR488Interface ar488)
+                {
+                    return new AR488Session(ar488, short.Parse(path[2]), short.Parse(path[4]));
+                }
                 else
                 {
-                    return new AR488Session(ResolveTypes(resourceManager, parent) as AR488Interface, short.Parse(path[2]), short.Parse(path[4]));
+                    throw new ArgumentException($"Cannot link AR488 reference to device: {resource}");
                 }
             }
 
-            throw new NotImplementedException();
+            throw new NotImplementedException($"Unknown type for AR488: {resource}");
         }
         return null;
+    }
+    private static string GetSerialPortData(int number)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            using (var searcher = new ManagementObjectSearcher(
+                @"\\" + Environment.MachineName + @"\root\CIMV2",
+                $"SELECT * FROM Win32_PnPEntity WHERE Caption like '%(COM{number}%'"))
+            {
+                var ports = searcher.Get().Cast<ManagementBaseObject>().ToList();
+                var port = ports[0];
+
+                return port["DeviceID"].ToString() ?? $"COM{number}";
+            }
+        }
+        return $"COM{number}";
     }
 
     private bool TryFindInterface(ISerialSession serial)
@@ -228,11 +269,6 @@ public class AR488 : IVisaSessionResolver
             }
         }
     }
-
-    public string GetID()
-    {
-        return "AR488";
-    }
 }
 
 internal class AR488Result : IVisaAsyncResult
@@ -253,7 +289,15 @@ internal class AR488Result : IVisaAsyncResult
 
     public bool CompletedSynchronously { get; private set; }
 
-    public AR488Result(bool isAborted, byte[] buffer, long count, long index, bool isCompleted, WaitHandle asyncWaitHandle, object asyncState, bool completedSynchronously)
+    public AR488Result(
+        bool isAborted,
+        byte[] buffer,
+        long count,
+        long index,
+        bool isCompleted,
+        WaitHandle asyncWaitHandle,
+        object asyncState,
+        bool completedSynchronously)
     {
         IsAborted = isAborted;
         Buffer = buffer;
@@ -2804,6 +2848,6 @@ internal class AR488Session : IGpibSession, IMessageBasedSession, IVisaSession, 
 
     public void Dispose()
     {
-        Interface.Dispose();
+        Interface.Dispose();//wouldnt that cause evilness?
     }
 }

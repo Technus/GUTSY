@@ -19,5 +19,5 @@ public interface IVisaSessionResolver : IIdentifiable
     /// <param name="resourceManager"></param>
     /// <param name="resource"></param>
     /// <returns></returns>
-    IVisaSession ResolveSession(IResourceManager resourceManager, string resource);
+    IVisaSession? ResolveSession(IResourceManager resourceManager, string resource);
 }
