@@ -14,7 +14,7 @@ public interface IVisaSessionResolver : IIdentifiable
     List<string> ResolveResources(IResourceManager resourceManager, string resource);
 
     /// <summary>
-    /// Called on own resource to create a sesssion for it
+    /// Called on own resource to create a session for it
     /// </summary>
     /// <param name="resourceManager"></param>
     /// <param name="resource"></param>

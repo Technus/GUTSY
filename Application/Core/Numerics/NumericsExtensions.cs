@@ -9,17 +9,14 @@ public static class NumericsExtensions
     private const double DegToRad = Math.PI / 180;
 
     public static string ToCartesian(this Complex complex) =>
-        complex.Real.ToString(CultureInfo.InvariantCulture) + " " +
-        complex.Imaginary.ToString(CultureInfo.InvariantCulture) + "i";
+        $"{complex.Real.ToString(CultureInfo.InvariantCulture)} {complex.Imaginary.ToString(CultureInfo.InvariantCulture)}i";
     public static string ToPolar(this Complex complex, bool useRadians = true) =>
-        complex.Magnitude.ToString(CultureInfo.InvariantCulture) + " " + (useRadians ?
-        complex.Phase.ToString(CultureInfo.InvariantCulture) + "rad" :
-        (complex.Phase * RadToDeg).ToString(CultureInfo.InvariantCulture) + "deg");
+        $"{complex.Magnitude.ToString(CultureInfo.InvariantCulture)} {(useRadians ? $"{complex.Phase.ToString(CultureInfo.InvariantCulture)}rad" : $"{(complex.Phase * RadToDeg).ToString(CultureInfo.InvariantCulture)}deg")}";
 
     public static Complex FromCartesian(this string complex)
     {
-        string[] parts = complex.Split(" ");
-        return new(double.Parse(parts[0], CultureInfo.InvariantCulture),
+        var parts = complex.Split(" ");
+        return new Complex(double.Parse(parts[0], CultureInfo.InvariantCulture),
             double.Parse(parts[1].ToLowerInvariant().Replace("i", ""), CultureInfo.InvariantCulture));
     }
 
@@ -27,17 +24,18 @@ public static class NumericsExtensions
     /// <exception cref="OverflowException"></exception>
     public static Complex FromPolar(this string complex)
     {
-        string[] parts = complex.Split(" ");
-        if (parts[1].ToLowerInvariant().Contains("rad"))
+        var parts = complex.Split(" ");
+        var angleType = parts[1].ToLowerInvariant();
+        if (angleType.Contains("rad"))
         {
             return Complex.FromPolarCoordinates(double.Parse(parts[0], CultureInfo.InvariantCulture),
-                double.Parse(parts[1].ToLowerInvariant().Replace("rad", ""), CultureInfo.InvariantCulture));
+                double.Parse(angleType.Replace("rad", ""), CultureInfo.InvariantCulture));
         }
-        else if (parts[1].ToLowerInvariant().Contains("deg"))
+        if (angleType.Contains("deg"))
         {
             return Complex.FromPolarCoordinates(double.Parse(parts[0], CultureInfo.InvariantCulture),
-                double.Parse(parts[1].ToLowerInvariant().Replace("deg", ""), CultureInfo.InvariantCulture) * DegToRad);
+                double.Parse(angleType.Replace("deg", ""), CultureInfo.InvariantCulture) * DegToRad);
         }
-        throw new FormatException("Cannot parse, unknown angle unit: " + complex);
+        throw new FormatException($"Cannot parse, unknown angle unit: {complex}");
     }
 }

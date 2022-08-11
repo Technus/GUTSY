@@ -6,5 +6,5 @@ public interface IIdentifiable
     /// Gets command unique identifier
     /// </summary>
     /// <returns></returns>
-    string GetID();
+    public string Identifier { get; }
 }

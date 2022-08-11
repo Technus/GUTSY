@@ -1,21 +1,21 @@
 ﻿using FFTW.NET;
-using GeneralUnifiedTestSystemYard.Core;
+using GeneralUnifiedTestSystemYard.Core.Command;
 using Newtonsoft.Json.Linq;
 using System.Numerics;
 
 namespace GeneralUnifiedTestSystemYard.Commands.Fourier;
 
-public class IFFT : IGUTSYCommand
+public class Ifft : IGutsyCommand
 {
-    public string GetID() => "IFFT";
+    public string Identifier => "IFFT";
 
     /// <exception cref="OverflowException"></exception>
     public static int[] GetRealBufferSize(int[] complexBufferSize)
     {
-        int[] array = new int[complexBufferSize.Length];
+        var array = new int[complexBufferSize.Length];
         Buffer.BlockCopy(complexBufferSize, 0, array, 0, array.Length * sizeof(int));
         array[array.Length - 1] = (complexBufferSize[array.Length - 1] - 1) * 2;
-        for (int i = 0; i < array.Length; i++)
+        for (var i = 0; i < array.Length; i++)
         {
             array[i] = array[i] < 0 ? 0 : array[i];
         }
@@ -25,7 +25,7 @@ public class IFFT : IGUTSYCommand
     /// <summary>
     /// Computes the reverse FFT
     /// </summary>
-    /// <param name="array">JSON Array of stringified complex values</param>
+    /// <param name="parameters">JSON Array of serialized complex values</param>
     /// <returns>JSON Array of numeric values</returns>
     /// <exception cref="OverflowException"></exception>
     /// <exception cref="FormatException"></exception>
@@ -34,14 +34,14 @@ public class IFFT : IGUTSYCommand
     {
         if(parameters is JArray array)
         {
-            if (array.Count() < 3) throw new ArgumentException("Not enough content: " + array);
-            var input = array?.ToObject<Complex[]>() ?? Array.Empty<Complex>();
+            if (array.Count < 3) throw new ArgumentException($"Not enough content: {array}");
+            var input = array.ToObject<Complex[]>() ?? Array.Empty<Complex>();
             using var pinIn = new PinnedArray<Complex>(input);
             using var pinOut = new FftwArrayDouble(GetRealBufferSize(pinIn.GetSize()));
 
             //DC needs no scaling to RMS
             var scale = 1 / Math.Sqrt(2);//AC to RMS
-            for (int i = 1; i < input.Length; i++)
+            for (var i = 1; i < input.Length; i++)
             {
                 input[i] *= scale;
             }

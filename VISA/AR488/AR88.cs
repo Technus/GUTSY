@@ -1,18 +1,19 @@
-﻿using Ivi.Visa;
-using System.Management;
+﻿using System.Management;
 using System.Text;
+using GeneralUnifiedTestSystemYard.Commands.VISA;
+using Ivi.Visa;
 
-namespace GeneralUnifiedTestSystemYard.Commands.VISA;
+namespace GeneralUnifiedTestSystemYard.Commands.AR488;
 
-public class AR488 : IVisaSessionResolver
+public class Ar488 : IVisaSessionResolver
 {
-    private readonly Dictionary<string, AR488Interface> interfaces = new();
-    private const string identifyQuery1 = "*IDN?\n";
-    private const string identifyQuery2 = "ID?\n";//todo check
-    private const string serialName = "Arduino";
-    private const string serialVidPid = "VID_2341&PID_8037";
+    private readonly Dictionary<string, Ar488Interface> _interfaces = new();
+    private const string IdentifyQuery1 = "*IDN?\n";
+    private const string IdentifyQuery2 = "ID?\n";
+    private const string SerialName = "Arduino";
+    private const string SerialVidPid = "VID_2341&PID_8037";
 
-    public string GetID() => "AR488";
+    public string Identifier => "AR488";
 
     public List<string> ResolveResources(IResourceManager resourceManager, string resource)
     {
@@ -22,8 +23,8 @@ public class AR488 : IVisaSessionResolver
             using var session = resourceManager.Open(resource, AccessModes.None, 1000);
             if (session is ISerialSession serial)
             {
-                if (serial.HardwareInterfaceName.Contains(serialName) ||
-                    GetSerialPortData(serial.HardwareInterfaceNumber).Contains(serialVidPid))
+                if (serial.HardwareInterfaceName.Contains(SerialName) ||
+                    GetSerialPortData(serial.HardwareInterfaceNumber).Contains(SerialVidPid))
                 {
                     var timeout = serial.TimeoutMilliseconds;
                     serial.TimeoutMilliseconds = 100;
@@ -56,15 +57,24 @@ public class AR488 : IVisaSessionResolver
                             serial.RawIO.Write("++read\n");
                             try
                             {
-                                while (true)//untill timout
+                                byte[]? bytes;
+                                do
                                 {
-                                    serial.RawIO.Read(1);
-                                }
+                                    bytes = serial.RawIO.Read(1);
+                                } while (bytes is { Length: > 0 });//until empty
                             }
-                            catch { }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e);
+                                throw;
+                            }
                         }
-                        catch { }
-                        output.Add("GPIB::INTFC::AR488::" + resource);
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                            throw;
+                        }
+                        output.Add($"GPIB::INTFC::AR488::{resource}");
 
                         //Thread.Sleep(100);
                         //serial.RawIO.Write($"++ifc\n");
@@ -78,10 +88,7 @@ public class AR488 : IVisaSessionResolver
                         serial.ReadTermination = SerialTerminationMethod.TerminationCharacter;
                         serial.SetBufferSize(IOBuffers.ReadWrite, 1024 * 1024);
 
-                        foreach (var device in TryFindInstruments(serial))
-                        {
-                            output.Add("GPIB::" + (device < 10 ? "0" : "") + device + "::0::INSTR::AR488::" + resource);
-                        }
+                        output.AddRange(TryFindInstruments(serial).Select(device => $"GPIB::{(device < 10 ? "0" : "")}{device}::0::INSTR::AR488::{resource}"));
 
                         return output;
                     }
@@ -94,11 +101,12 @@ public class AR488 : IVisaSessionResolver
                     }
                 }
             }
-        notFound:
-            return output;
+            notFound: ;
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e);
+            throw;
         }
         return output;
     }
@@ -109,80 +117,75 @@ public class AR488 : IVisaSessionResolver
     /// <exception cref="ArgumentException"></exception>
     public IVisaSession? ResolveSession(IResourceManager resourceManager, string resource)
     {
-        if (resource.Contains("AR488"))
+        if (!resource.Contains("AR488")) return null;
+        
+        if (resource.Contains("INTFC"))
         {
-            if (resource.Contains("INTFC"))
+            if (_interfaces.ContainsKey(resource))
             {
-                if (interfaces.ContainsKey(resource))
-                {
-                    //interfaces[resource].Dispose();
-                    //interfaces.Remove(resource);
-                    return interfaces[resource];
-                }
-
-                var session = resourceManager.Open(resource.Replace("GPIB::INTFC::AR488::", ""));
-                if (session is ISerialSession serial)
-                {
-                    var controller = new AR488Interface(serial);
-                    interfaces.Add(resource, controller);
-                    return controller;
-                }
-            }
-            else if (resource.Contains("INSTR"))
-            {
-                var path = resource.Split(':');
-                var parent = "GPIB::INTFC::AR488::";
-                var found = false;
-                for (int i = 0; i < path.Length; i++)
-                {
-                    if (path[i].Contains("AR488"))
-                    {
-                        i += 2;
-                        found = true;
-                    }
-                    if (found)
-                    {
-                        parent += path[i];
-                        parent += ":";
-                    }
-                }
-                parent = parent.Remove(parent.Length - 1);
-                if (interfaces.ContainsKey(parent))
-                {
-                    return new AR488Session(interfaces[parent], short.Parse(path[2]), short.Parse(path[4]));
-                }
-                else if(ResolveSession(resourceManager, parent) is AR488Interface ar488)
-                {
-                    return new AR488Session(ar488, short.Parse(path[2]), short.Parse(path[4]));
-                }
-                else
-                {
-                    throw new ArgumentException($"Cannot link AR488 reference to device: {resource}");
-                }
+                //interfaces[resource].Dispose();
+                //interfaces.Remove(resource);
+                return _interfaces[resource];
             }
 
-            throw new NotImplementedException($"Unknown type for AR488: {resource}");
+            var session = resourceManager.Open(resource.Replace("GPIB::INTFC::AR488::", ""));
+            if (session is ISerialSession serial)
+            {
+                var controller = new Ar488Interface(serial);
+                _interfaces.Add(resource, controller);
+                return controller;
+            }
         }
-        return null;
+        else if (resource.Contains("INSTR"))
+        {
+            var path = resource.Split(':');
+            var parent = "GPIB::INTFC::AR488::";
+            var found = false;
+            for (var i = 0; i < path.Length; i++)
+            {
+                if (path[i].Contains("AR488"))
+                {
+                    i += 2;
+                    found = true;
+                }
+                if (found)
+                {
+                    parent += path[i];
+                    parent += ":";
+                }
+            }
+            parent = parent.Remove(parent.Length - 1);
+            if (_interfaces.ContainsKey(parent))
+            {
+                return new Ar488Session(_interfaces[parent], short.Parse(path[2]), short.Parse(path[4]));
+            }
+
+            if(ResolveSession(resourceManager, parent) is Ar488Interface ar488)
+            {
+                return new Ar488Session(ar488, short.Parse(path[2]), short.Parse(path[4]));
+            }
+
+            throw new ArgumentException($"Cannot link AR488 reference to device: {resource}");
+        }
+
+        throw new NotImplementedException($"Unknown type for AR488: {resource}");
     }
     private static string GetSerialPortData(int number)
     {
         if (OperatingSystem.IsWindows())
         {
-            using (var searcher = new ManagementObjectSearcher(
-                @"\\" + Environment.MachineName + @"\root\CIMV2",
-                $"SELECT * FROM Win32_PnPEntity WHERE Caption like '%(COM{number}%'"))
-            {
-                var ports = searcher.Get().Cast<ManagementBaseObject>().ToList();
-                var port = ports[0];
+            using var searcher = new ManagementObjectSearcher(
+                $@"\\{Environment.MachineName}\root\CIMV2",
+                $"SELECT * FROM Win32_PnPEntity WHERE Caption like '%(COM{number}%'");
+            var ports = searcher.Get().Cast<ManagementBaseObject>().ToList();
+            var port = ports[0];
 
-                return port["DeviceID"].ToString() ?? $"COM{number}";
-            }
+            return port["DeviceID"].ToString() ?? $"COM{number}";
         }
         return $"COM{number}";
     }
 
-    private bool TryFindInterface(ISerialSession serial)
+    private static bool TryFindInterface(IMessageBasedSession serial)
     {
         try
         {
@@ -197,28 +200,28 @@ public class AR488 : IVisaSessionResolver
         }
     }
 
-    private bool TryFindInstrument(ISerialSession serial, int addr)
+    private static bool TryFindInstrument(ISerialSession serial, int addr)
     {
         //Thread.Sleep(100);
         serial.RawIO.Write($"++check {addr}\n");
         try
         {
-            return serial.RawIO.ReadString().Contains("0");
+            return serial.RawIO.ReadString().Contains('0');
         }
         catch (Exception e)
         {
             //Thread.Sleep(100);
             serial.Flush(IOBuffers.ReadWrite, true);
             serial.RawIO.Write($"++check {addr}\n");
-            return serial.RawIO.ReadString().Contains("0");
+            return serial.RawIO.ReadString().Contains('0');
         }
     }
 
-    private byte[] TryFindInstruments(ISerialSession serial)
+    private static IEnumerable<byte> TryFindInstruments(ISerialSession serial)
     {
         uint devices;
         //Thread.Sleep(100);
-        serial.RawIO.Write($"++check all\n");
+        serial.RawIO.Write("++check all\n");
         try
         {
             devices = uint.Parse(serial.RawIO.ReadString());
@@ -227,10 +230,10 @@ public class AR488 : IVisaSessionResolver
         {
             //Thread.Sleep(100);
             serial.Flush(IOBuffers.ReadWrite, true);
-            serial.RawIO.Write($"++check all\n");
+            serial.RawIO.Write("++check all\n");
             devices = uint.Parse(serial.RawIO.ReadString());
         }
-        List<byte> addresses = new List<byte>();
+        var addresses = new List<byte>();
         for (byte device = 0; device < 30; device++)
         {
             if ((devices & (1 << device)) != 0)
@@ -241,14 +244,14 @@ public class AR488 : IVisaSessionResolver
         return addresses.ToArray();
     }
 
-    private bool TryIdentify(ISerialSession serial)
+    private static bool TryIdentify(IMessageBasedSession serial)
     {
         string id;
         try
         {
-            serial.RawIO.Write(identifyQuery1);
+            serial.RawIO.Write(IdentifyQuery1);
             Thread.Sleep(100);
-            serial.RawIO.Write($"++read\n");
+            serial.RawIO.Write("++read\n");
             id = serial.RawIO.ReadString();
             return id.Length > 0;
         }
@@ -257,9 +260,9 @@ public class AR488 : IVisaSessionResolver
             try
             {
                 Thread.Sleep(100);
-                serial.RawIO.Write(identifyQuery2);
+                serial.RawIO.Write(IdentifyQuery2);
                 Thread.Sleep(100);
-                serial.RawIO.Write($"++read\n");
+                serial.RawIO.Write("++read\n");
                 id = serial.RawIO.ReadString();
                 return id.Length > 0;
             }
@@ -271,25 +274,25 @@ public class AR488 : IVisaSessionResolver
     }
 }
 
-internal class AR488Result : IVisaAsyncResult
+internal class Ar488Result : IVisaAsyncResult
 {
-    public bool IsAborted { get; private set; }
+    public bool IsAborted { get; }
 
-    public byte[] Buffer { get; private set; }
+    public byte[] Buffer { get; }
 
-    public long Count { get; private set; }
+    public long Count { get; }
 
-    public long Index { get; private set; }
+    public long Index { get; }
 
-    public bool IsCompleted { get; private set; }
+    public bool IsCompleted { get; }
 
-    public WaitHandle AsyncWaitHandle { get; private set; }
+    public WaitHandle AsyncWaitHandle { get; }
 
-    public object AsyncState { get; private set; }
+    public object AsyncState { get; }
 
-    public bool CompletedSynchronously { get; private set; }
+    public bool CompletedSynchronously { get; }
 
-    public AR488Result(
+    public Ar488Result(
         bool isAborted,
         byte[] buffer,
         long count,
@@ -310,24 +313,22 @@ internal class AR488Result : IVisaAsyncResult
     }
 }
 
-internal class AR488Raw : IMessageBasedRawIO, IVisaSession, IDisposable
+internal class Ar488Raw : IMessageBasedRawIO, IVisaSession
 {
-    private IVisaSession _session;
-    private ISerialSession _serial;
-    private AR488Interface _interface;
+    private readonly IVisaSession _session;
+    private readonly ISerialSession _serial;
+    private readonly Ar488Interface _interface;
 
-    public AR488Raw(IVisaSession session, ISerialSession serial)
+    public Ar488Raw(IVisaSession session, ISerialSession serial)
     {
         _session = session;
         _serial = serial;
-        if (session is AR488Interface)
+        _interface = session switch
         {
-            _interface = session as AR488Interface;
-        }
-        else if (session is AR488Session)
-        {
-            _interface = (session as AR488Session).Interface;
-        }
+            Ar488Interface ar488Interface => ar488Interface,
+            Ar488Session ar488Session => ar488Session.Interface,
+            _ => _interface
+        } ?? throw new InvalidOperationException("Cannot find AR488 interface");
     }
 
     public int EventQueueCapacity { get => _session.EventQueueCapacity; set => _session.EventQueueCapacity = value; }
@@ -539,7 +540,7 @@ internal class AR488Raw : IMessageBasedRawIO, IVisaSession, IDisposable
 
         try
         {
-            byte[] bytes = null;
+            byte[]? bytes = null;
 
 
             var readTermination = _serial.ReadTermination;
@@ -549,30 +550,29 @@ internal class AR488Raw : IMessageBasedRawIO, IVisaSession, IDisposable
             //_interface.TimeoutMilliseconds = 1000;//must be greater than read tmo ms this assures that.
             try
             {
-                using (var memStream = new MemoryStream())
+                using var memStream = new MemoryStream();
+                while (true)
                 {
-                    while (true)
+                    try
                     {
-                        try
+                        bytes = null;
+                        bytes = _serial.RawIO.Read(1);
+                        memStream.Write(bytes, 0, bytes.Length);
+                        if (toChar is not null && bytes[0] == toChar)
                         {
-                            bytes = null;
-                            bytes = _serial.RawIO.Read(1);
-                            memStream.Write(bytes, 0, bytes.Length);
-                            if (toChar is char && bytes[0] == toChar)
-                            {
-                                return memStream.ToArray();
-                            }
+                            return memStream.ToArray();
                         }
-                        catch (IOTimeoutException e)
+                    }
+                    catch (IOTimeoutException e)
+                    {
+                        if (bytes is null)
                         {
-                            if (bytes is null)
+                            if (memStream.Length == 0)
                             {
-                                if (memStream.Length == 0)
-                                {
-                                    throw new IOTimeoutException(0, null, "Failed to get anything, timeout " + _serial.TimeoutMilliseconds, e);
-                                }
-                                return memStream.ToArray();
+                                throw new IOTimeoutException(0, null,
+                                    $"Failed to get anything, timeout {_serial.TimeoutMilliseconds}", e);
                             }
+                            return memStream.ToArray();
                         }
                     }
                 }
@@ -631,10 +631,10 @@ internal class AR488Raw : IMessageBasedRawIO, IVisaSession, IDisposable
         throw new NotImplementedException();
     }
 
-    private static readonly byte[] ESC = { 0x1B };
+    private static readonly byte[] Esc = { 0x1B };
     public void Write(byte[] buffer)
     {
-        for (int i = 0; i < buffer.Length; i++)
+        for (var i = 0; i < buffer.Length; i++)
         {
             switch (buffer[i])
             {
@@ -643,7 +643,7 @@ internal class AR488Raw : IMessageBasedRawIO, IVisaSession, IDisposable
                 case (byte)'+':
                 case (byte)'*':
                 case 0x1B:
-                    _serial.RawIO.Write(ESC);
+                    _serial.RawIO.Write(Esc);
                     _serial.RawIO.Write(buffer, i, 1);
                     break;
                 default:
@@ -668,12 +668,12 @@ internal class AR488Raw : IMessageBasedRawIO, IVisaSession, IDisposable
     public void Write(string buffer)
     {
         var str = buffer
-            .Replace("" + (char)0x1B, "" + (char)0x1B + (char)0x1B)
-            .Replace("+", (char)0x1B + "+")
-            .Replace("*", (char)0x1B + "*")
-            .Replace("\r", (char)0x1B + "\r")
-            .Replace("\n", (char)0x1B + "\n");
-        _serial.RawIO.Write(str + "\n");
+            .Replace($"{(char)0x1B}", $"{(char)0x1B}{(char)0x1B}")
+            .Replace("+", $"{(char)0x1B}+")
+            .Replace("*", $"{(char)0x1B}*")
+            .Replace("\r", $"{(char)0x1B}\r")
+            .Replace("\n", $"{(char)0x1B}\n");
+        _serial.RawIO.Write($"{str}\n");
         Thread.Sleep(10);
     }
 
@@ -688,24 +688,22 @@ internal class AR488Raw : IMessageBasedRawIO, IVisaSession, IDisposable
     }
 }
 
-internal class AR488Formatted : IMessageBasedFormattedIO, IVisaSession, IDisposable
+internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
 {
     private IVisaSession _session;
     private IMessageBasedRawIO _raw;
-    private AR488Interface _interface;
+    private Ar488Interface _interface;
 
-    public AR488Formatted(IVisaSession session, IMessageBasedRawIO raw)
+    public Ar488Formatted(IVisaSession session, IMessageBasedRawIO raw)
     {
         _session = session;
         _raw = raw;
-        if (session is AR488Interface)
+        _interface = session switch
         {
-            _interface = session as AR488Interface;
-        }
-        else if (session is AR488Session)
-        {
-            _interface = (session as AR488Session).Interface;
-        }
+            Ar488Interface ar488Interface => ar488Interface,
+            Ar488Session ar488Session => ar488Session.Interface,
+            _ => _interface
+        } ?? throw new InvalidOperationException("Cannot find AR488 interface");
     }
 
     public int ReadBufferSize { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
@@ -2181,22 +2179,22 @@ internal class AR488Formatted : IMessageBasedFormattedIO, IVisaSession, IDisposa
     }
 }
 
-internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
+internal class Ar488Interface : IGpibInterfaceSession
 {
-    public ISerialSession Serial { get; private set; }
-    public IMessageBasedRawIO RawIO { get; private set; }
+    public ISerialSession Serial { get; }
+    public IMessageBasedRawIO RawIO { get; }
 
     private string _ver, _verReal;
     private Thread _scanner;
 
-    public AR488Interface(ISerialSession serial)
+    public Ar488Interface(ISerialSession serial)
     {
         Serial = serial;
         Serial.BaudRate = 1000000;
         Serial.SetBufferSize(IOBuffers.ReadWrite, 1024 * 1024);
         Serial.TimeoutMilliseconds = 2000;
 
-        RawIO = new AR488Raw(this, Serial);
+        RawIO = new Ar488Raw(this, Serial);
 
         Serial.Flush(IOBuffers.ReadWrite, true);
 
@@ -2223,19 +2221,19 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
         {
             try
             {
-                LineState _previousSrq = LineState.Unasserted;
-                LineState _actualSrq = LineState.Unasserted;
+                var previousSrq = LineState.Unasserted;
+                var actualSrq = LineState.Unasserted;
                 while (true)
                 {
                     lock (Serial)
                     {
-                        _previousSrq = _actualSrq;
-                        _actualSrq = SrqState;
-                        if (_actualSrq == LineState.Asserted && _previousSrq == LineState.Unasserted)
+                        previousSrq = actualSrq;
+                        actualSrq = SrqState;
+                        if (actualSrq == LineState.Asserted && previousSrq == LineState.Unasserted)
                         {
-                            ServiceRequest.Invoke(this, new VisaEventArgs(EventType.ServiceRequest));
+                            ServiceRequest?.Invoke(this, new VisaEventArgs(EventType.ServiceRequest));
                         }
-                        _previousSrq = SrqState;
+                        previousSrq = SrqState;
                     }
                 }
             }
@@ -2246,16 +2244,20 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
 
     public void SendInterfaceCommand(string command)
     {
-        Serial.RawIO.Write(command + "\n");
+        Serial.RawIO.Write($"{command}\n");
         Thread.Sleep(10);
     }
 
     public string ReadInterfaceResponse()
     {
-        return Encoding.UTF8.GetString((RawIO as AR488Raw).ReadRaw('\n'));
+        if(RawIO is Ar488Raw raw )
+        {
+            return Encoding.UTF8.GetString(raw.ReadRaw('\n'));
+        }
+        throw new InvalidOperationException("Raw IO was not AR488 Raw io");
     }
 
-    public string HardwareInterfaceName => _verReal + " on " + Serial.HardwareInterfaceName;
+    public string HardwareInterfaceName => $"{_verReal} on {Serial.HardwareInterfaceName}";
     public short HardwareInterfaceNumber => Serial.HardwareInterfaceNumber;
     public HardwareInterfaceType HardwareInterfaceType => HardwareInterfaceType.Gpib;
 
@@ -2265,7 +2267,7 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
 
     public short ResourceManufacturerId => Serial.ResourceManufacturerId;
     public string ResourceManufacturerName => Serial.ResourceManufacturerName;
-    public string ResourceName => "GPIB::INTFC::AR488::" + Serial.ResourceName;
+    public string ResourceName => $"GPIB::INTFC::AR488::{Serial.ResourceName}";
 
     public Version ResourceSpecificationVersion => Serial.ResourceSpecificationVersion;
 
@@ -2277,10 +2279,6 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
             var state = int.Parse(ReadInterfaceResponse());
             switch (state)
             {
-                case 1:
-                case 2:
-                case 6:
-                case 7:
                 default:
                     return GpibAddressedState.Unaddressed;
                 case 4:
@@ -2344,10 +2342,7 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
             var state = byte.Parse(ReadInterfaceResponse());
             return state;
         }
-        set
-        {
-            SendInterfaceCommand("++status " + value);
-        }
+        set => SendInterfaceCommand($"++status {value}");
     }
 
     public bool IsControllerInCharge => IsSystemController;
@@ -2361,7 +2356,7 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
         }
         set
         {
-            SendInterfaceCommand("++mode " + (value ? "0" : "1"));
+            SendInterfaceCommand($"++mode {(value ? "0" : "1")}");
             ControllerInCharge.Invoke(this, new GpibControllerInChargeEventArgs(value));
         }
     }
@@ -2378,7 +2373,7 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
         set
         {
             if (_paddr == value) return;
-            SendInterfaceCommand("++addr " + value + " " + SecondaryAddress);
+            SendInterfaceCommand($"++addr {value} {SecondaryAddress}");
         }
     }
     public short SecondaryAddress
@@ -2388,8 +2383,10 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
             SendInterfaceCommand("++addr");
             try
             {
-                var state = short.Parse(ReadInterfaceResponse().Split(' ')?[1] ?? "0");
-                return _saddr = state;
+                var str = ReadInterfaceResponse().Split(' ');
+                var saddrStr = str.Length>1?str[1]:"0";
+                var saddr = short.Parse(saddrStr);
+                return _saddr = saddr;
             }
             catch (IndexOutOfRangeException)
             {
@@ -2399,7 +2396,7 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
         set
         {
             if (_saddr == value) return;
-            SendInterfaceCommand("++addr " + PrimaryAddress + " " + value);
+            SendInterfaceCommand($"++addr {PrimaryAddress} {value}");
         }
     }
 
@@ -2414,8 +2411,8 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
         }
         set
         {
-            if (_sendEnd = value) return;
-            SendInterfaceCommand("++eoi " + (value ? 1 : 0));
+            if (_sendEnd == value) return;
+            SendInterfaceCommand($"++eoi {(value ? 1 : 0)}");
         }
     }
 
@@ -2445,7 +2442,7 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
                 case 7:
                     return _terminatorChar = 0x00;
                 default:
-                    throw new Exception("Invalid Termination setting: " + state);
+                    throw new Exception($"Invalid Termination setting: {state}");
             }
         }
         set
@@ -2463,7 +2460,7 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
                     SendInterfaceCommand("++eor 5");
                     break;
                 default:
-                    throw new Exception("Invalid Termination setting: " + value);
+                    throw new Exception($"Invalid Termination setting: {value}");
             }
         }
     }
@@ -2486,12 +2483,12 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
                 case 7:
                     return _terminatorEnable = false;
                 default:
-                    throw new Exception("Invalid Termination setting: " + state);
+                    throw new Exception($"Invalid Termination setting: {state}");
             }
         }
         set
         {
-            if (_terminatorEnable = value) return;
+            if (_terminatorEnable == value) return;
             if (value)
             {
                 _terminatorChar = TerminationCharacter;
@@ -2582,6 +2579,8 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
                 SendInterfaceCommand("++ren 1");
                 SendInterfaceCommand("++llo");
                 break;
+            default:
+                throw new InvalidOperationException($"Cannot set to: {mode}");
         }
     }
 
@@ -2654,24 +2653,24 @@ internal class AR488Interface : IGpibInterfaceSession, IVisaSession, IDisposable
     }
 }
 
-internal class AR488Session : IGpibSession, IMessageBasedSession, IVisaSession, IDisposable
+internal class Ar488Session : IGpibSession
 {
-    public AR488Interface Interface { get; private set; }
+    public Ar488Interface Interface { get; private set; }
     public IMessageBasedRawIO RawIO { get; private set; }
     public IMessageBasedFormattedIO FormattedIO { get; private set; }
 
-    public AR488Session(AR488Interface controllerInterface, short paddr, short saddr)
+    public Ar488Session(Ar488Interface controllerInterface, short paddr, short saddr)
     {
         Interface = controllerInterface;
-        RawIO = new AR488Raw(this, Interface.Serial);
-        FormattedIO = new AR488Formatted(this, Interface.RawIO);
+        RawIO = new Ar488Raw(this, Interface.Serial);
+        FormattedIO = new Ar488Formatted(this, Interface.RawIO);
 
         PrimaryAddress = paddr;
         SecondaryAddress = saddr;
     }
 
-    public short PrimaryAddress { get; private set; }
-    public short SecondaryAddress { get; private set; }
+    public short PrimaryAddress { get; }
+    public short SecondaryAddress { get; }
 
     public bool SendEndEnabled { get; set; }
     public byte TerminationCharacter { get; set; }
@@ -2686,7 +2685,6 @@ internal class AR488Session : IGpibSession, IMessageBasedSession, IVisaSession, 
 
     public void SendRemoteLocalCommand(RemoteLocalMode mode)
     {
-        LineState ren;
         switch (mode)
         {
             case RemoteLocalMode.LocalWithoutLockout:
@@ -2701,7 +2699,7 @@ internal class AR488Session : IGpibSession, IMessageBasedSession, IVisaSession, 
                 Interface.SendInterfaceCommand("++llo");
                 break;
             case RemoteLocalMode.Local:
-                ren = RenState;
+                var ren = RenState;
                 Interface.SendInterfaceCommand("++ren 1");
                 Interface.SendInterfaceCommand("++loc");
                 if (ren == LineState.Asserted)
@@ -2709,11 +2707,12 @@ internal class AR488Session : IGpibSession, IMessageBasedSession, IVisaSession, 
                     Interface.SendInterfaceCommand("++ren 1");
                 }
                 break;
+            default:
+                throw new InvalidOperationException($"Cannot set to: {mode}");
         }
     }
     public void SendRemoteLocalCommand(GpibInstrumentRemoteLocalMode mode)
     {
-        LineState ren;
         switch (mode)
         {
             case GpibInstrumentRemoteLocalMode.DeassertRen:
@@ -2734,7 +2733,7 @@ internal class AR488Session : IGpibSession, IMessageBasedSession, IVisaSession, 
                 Interface.SendInterfaceCommand("++llo");
                 break;
             case GpibInstrumentRemoteLocalMode.GoToLocal:
-                ren = RenState;
+                var ren = RenState;
                 Interface.SendInterfaceCommand("++ren 1");
                 Interface.SendInterfaceCommand("++loc");
                 if (ren == LineState.Asserted)
@@ -2742,6 +2741,8 @@ internal class AR488Session : IGpibSession, IMessageBasedSession, IVisaSession, 
                     Interface.SendInterfaceCommand("++ren 1");
                 }
                 break;
+            default:
+                throw new InvalidOperationException($"Cannot set to: {mode}");
         }
     }
 
@@ -2848,6 +2849,6 @@ internal class AR488Session : IGpibSession, IMessageBasedSession, IVisaSession, 
 
     public void Dispose()
     {
-        Interface.Dispose();//wouldnt that cause evilness?
+        Interface.Dispose();//wouldn't that cause evilness?
     }
 }

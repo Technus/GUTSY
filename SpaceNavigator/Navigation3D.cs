@@ -1,18 +1,15 @@
-﻿namespace GeneralUnifiedTestSystemYard.SpaceNavigator;
-
-using GeneralUnifiedTestSystemYard.Core;
-using TDx.SpaceMouse.Navigation3D;
+﻿using TDx.SpaceMouse.Navigation3D;
 using SpaceMouse = TDx.SpaceMouse.Navigation3D.Navigation3D;
 
-public class Navigation3D : INavigation3D,IGUTSYExtension
+namespace SpaceNavigator;
+public class Navigation3D : INavigation3D
 {
-    private readonly SpaceMouse _navigation;
-    public SpaceMouse Navigation => _navigation;
+    public SpaceMouse Navigation { get; }
 
     public Matrix CameraMatrix { get; set; } = new();
     public Box ViewExtents { get; set; } = new();
-    public double ViewFOV { get; set; } = 90;
-    public Frustum ViewFrustrum { get; set; } = new();
+    public double ViewFov { get; set; } = 90;
+    public Frustum ViewFrustum { get; set; } = new();
     public bool ViewPerspective { get; set; } = true;
     public Point CameraTarget { get; set; } = new();
     public Plane ViewConstructionPlane { get; set; } = new();
@@ -43,15 +40,13 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
 
 
     public Matrix CoordinateSystem { get; set; } = new();
-    public Matrix Frontview { get; set; } = new();
+    public Matrix FrontView { get; set; } = new();
 
     public Navigation3D()
     {
-        _navigation = new SpaceMouse(this);
-        _navigation.MotionChanged += (sender, e) => Console.Out.WriteLine(e);
+        Navigation = new SpaceMouse(this);
+        Navigation.MotionChanged += (_, e) => Console.Out.WriteLine(e);
     }
-
-    public string GetID() => "Navigation3D";
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to get the camera matrix from the view.
@@ -59,7 +54,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <returns>The camera matrix.</returns>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Matrix GetCameraMatrix() => CameraMatrix;
+    Matrix IView.GetCameraMatrix() => CameraMatrix;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to set the view's camera matrix.
@@ -67,7 +62,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <param name="matrix">The camera <see cref="Matrix"/>.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetCameraMatrix(Matrix matrix) => CameraMatrix = matrix;
+    void IView.SetCameraMatrix(Matrix matrix) => CameraMatrix = matrix;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to get the extents of the view.
@@ -75,7 +70,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <returns>The view's extents as a box or null.</returns>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Box GetViewExtents() => ViewExtents;
+    Box IView.GetViewExtents() => ViewExtents;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to set the view's extents.
@@ -83,7 +78,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <param name="extents">The view's extents to set.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetViewExtents(Box extents) => ViewExtents = extents;
+    void IView.SetViewExtents(Box extents) => ViewExtents = extents;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to get the camera's field of view.
@@ -91,7 +86,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <returns>The view's field of view.</returns>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public double GetViewFOV() => ViewFOV;
+    double IView.GetViewFOV() => ViewFov;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to set the camera's field of view.
@@ -99,7 +94,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <param name="fov">The camera field of view to set.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetViewFOV(double fov) => ViewFOV = fov;
+    void IView.SetViewFOV(double fov) => ViewFov = fov;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to get the view frustum.
@@ -107,7 +102,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <returns>The view's frustum.</returns>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Frustum GetViewFrustum() => ViewFrustrum;
+    Frustum IView.GetViewFrustum() => ViewFrustum;
 
     /// <summary>
     /// Is invoked when the Navigation3D instance needs to set the view frustum.
@@ -115,13 +110,13 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <param name="frustum">The view <see cref="Frustum"/> to set.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetViewFrustum(Frustum frustum) => ViewFrustrum = frustum;
+    void IView.SetViewFrustum(Frustum frustum) => ViewFrustum = frustum;
 
     /// <summary>
     /// Is invoked when the Navigation3D instance needs to get the view's projection type.
     /// </summary>
     /// <returns>true for a perspective view, false for an orthographic view, otherwise null.</returns>
-    public bool IsViewPerspective() => ViewPerspective;
+    bool IView.IsViewPerspective() => ViewPerspective;
 
     /// <summary>
     /// Is invoked when the Navigation3D instance needs to get the camera's target.
@@ -130,7 +125,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">The camera does not have a target.</exception>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Point GetCameraTarget() => CameraTarget;
+    Point IView.GetCameraTarget() => CameraTarget;
 
     /// <summary>
     /// Is invoked when the Navigation3D instance needs to set the camera's target.
@@ -138,7 +133,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <param name="target">The location of the camera's target to set.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetCameraTarget(Point target) => CameraTarget = target;
+    void IView.SetCameraTarget(Point target) => CameraTarget = target;
 
     /// <summary>
     /// Is invoked when the Navigation3D instance needs to get the view's construction plane.
@@ -147,14 +142,14 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">The view does not have a construction plane.</exception>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Plane GetViewConstructionPlane() => ViewConstructionPlane;
+    Plane IView.GetViewConstructionPlane() => ViewConstructionPlane;
 
     /// <summary>
     /// Is invoked when the Navigation3D instance needs to know whether the view can be rotated.
     /// </summary>
     /// <returns>true if the view can be rotated false if not, otherwise null.</returns>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public bool IsViewRotatable() => ViewRotatable;
+    bool IView.IsViewRotatable() => ViewRotatable;
 
     /// <summary>
     /// Is invoked when the Navigation3D instance needs to get the position of the pointer.
@@ -163,7 +158,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">The view does not have a pointer.</exception>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Point GetPointerPosition() => PointerPosition;
+    Point IView.GetPointerPosition() => PointerPosition;
 
     /// <summary>
     /// Is invoked when the Navigation3D instance needs to set the position of the pointer.
@@ -171,7 +166,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <param name="position">The location of the pointer in world coordinates to set.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetPointerPosition(Point position)=> PointerPosition = position;
+    void IView.SetPointerPosition(Point position)=> PointerPosition = position;
 
 
 
@@ -182,23 +177,23 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">No pivot position.</exception>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Point GetPivotPosition() => PivotPosition;
+    Point IPivot.GetPivotPosition() => PivotPosition;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to set the position of the rotation pivot.
     /// </summary>
-    /// <param name="value">The pivot <see cref="Point"/>.</param>
+    /// <param name="position">The pivot <see cref="Point"/>.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetPivotPosition(Point position) => PivotPosition = position;
+    void IPivot.SetPivotPosition(Point position) => PivotPosition = position;
 
     /// <summary>
     /// Occurs when the Navigation3D instance needs to set the visibility of the pivot point.
     /// </summary>
-    /// <param name="value">true if the pivot is visible otherwise false.</param>
+    /// <param name="visible">true if the pivot is visible otherwise false.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetPivotVisible(bool visible) => PivotVisible = visible;
+    void IPivot.SetPivotVisible(bool visible) => PivotVisible = visible;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to retrieve whether the user has manually set a pivot point.
@@ -206,7 +201,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <returns>true if the user has set a pivot otherwise false.</returns>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public bool IsUserPivot() => UserPivot;
+    bool IPivot.IsUserPivot() => UserPivot;
 
 
 
@@ -216,7 +211,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <returns>The extents of the model in world coordinates.</returns>
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">There is no model in the scene.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Box GetModelExtents() => ModelExtents;
+    Box IModel.GetModelExtents() => ModelExtents;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to get the extents of the selection.
@@ -224,31 +219,31 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <returns>The extents of the selection in world coordinates.</returns>
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">There is no selection.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Box GetSelectionExtents() => SelectionExtents;
+    Box IModel.GetSelectionExtents() => SelectionExtents;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to get the extents of the selection.
     /// </summary>
     /// <returns>true if the selection set is empty, otherwise false.</returns>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public bool IsSelectionEmpty() => SelectionEmpty;
+    bool IModel.IsSelectionEmpty() => SelectionEmpty;
 
     /// <summary>
-    /// Is called when the Navigation3D instance needs to get the selections's transform matrix.
+    /// Is called when the Navigation3D instance needs to get the selections transform matrix.
     /// </summary>
     /// <returns>The selection's transform <see cref="Matrix"/> in world coordinates or null.</returns>
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">There is no selection.</exception>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Matrix GetSelectionTransform() => SelectionTransform;
+    Matrix IModel.GetSelectionTransform() => SelectionTransform;
 
     /// <summary>
-    /// Is called when the Navigation3D instance needs to set the selections's transform matrix.
+    /// Is called when the Navigation3D instance needs to set the selections transform matrix.
     /// </summary>
     /// <param name="transform">The selection's transform <see cref="Matrix"/> in world coordinates.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetSelectionTransform(Matrix matrix) => SelectionTransform = matrix;
+    void IModel.SetSelectionTransform(Matrix transform) => SelectionTransform = transform;
 
 
 
@@ -259,39 +254,39 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">Nothing was hit.</exception>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Point GetLookAt() => LookAt;
+    Point IHit.GetLookAt() => LookAt;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to set the source of the hit ray/cone.
     /// </summary>
-    /// <param name="value">The source of the hit cone <see cref="Point"/>.</param>
+    /// <param name="eye">The source of the hit cone <see cref="Point"/>.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetLookFrom(Point eye) => LookFrom = eye;
+    void IHit.SetLookFrom(Point eye) => LookFrom = eye;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to set the direction of the hit ray/cone.
     /// </summary>
-    /// <param name="value">The direction of the ray/cone to set.</param>
+    /// <param name="direction">The direction of the ray/cone to set.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetLookDirection(Vector direction) => LookDirection = direction;
+    void IHit.SetLookDirection(Vector direction) => LookDirection = direction;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to set the aperture of the hit ray/cone.
     /// </summary>
-    /// <param name="value">The aperture of the ray/cone on the near plane.</param>
+    /// <param name="aperture">The aperture of the ray/cone on the near plane.</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetLookAperture(double aperture) => LookAperture = aperture;
+    void IHit.SetLookAperture(double aperture) => LookAperture = aperture;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to set the selection filter.
     /// </summary>
-    /// <param name="value">If true ignore non-selected items</param>
+    /// <param name="onlySelection">If true ignore non-selected items</param>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public void SetSelectionOnly(bool onlySelection) => SelectionOnly = onlySelection;
+    void IHit.SetSelectionOnly(bool onlySelection) => SelectionOnly = onlySelection;
 
 
 
@@ -301,7 +296,7 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <returns>The coordinate system matrix.</returns>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Matrix GetCoordinateSystem() => CoordinateSystem;
+    Matrix ISpace3D.GetCoordinateSystem() => CoordinateSystem;
 
     /// <summary>
     /// Is called when the Navigation3D instance needs to get the orientation of the front view.
@@ -310,5 +305,5 @@ public class Navigation3D : INavigation3D,IGUTSYExtension
     /// <exception cref="TDx.SpaceMouse.Navigation3D.NoDataException">No transform for the front view.</exception>
     /// <exception cref="System.InvalidOperationException">The call is invalid for the object's current state.</exception>
     /// <exception cref="System.NotImplementedException">The requested method or operation is not implemented.</exception>
-    public Matrix GetFrontView() => Frontview;
+    Matrix ISpace3D.GetFrontView() => FrontView;
 }

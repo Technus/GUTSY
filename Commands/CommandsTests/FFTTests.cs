@@ -1,21 +1,26 @@
-﻿using GeneralUnifiedTestSystemYard.Core;
+﻿using System.Numerics;
+using GeneralUnifiedTestSystemYard.Core;
+using GeneralUnifiedTestSystemYard.Core.ClassExtensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
-using System.Numerics;
 
-namespace GeneralUnifiedTestSystemYard.Commands.CommandsTests;
+namespace CommandsTests;
 
-[TestClass()]
-public class FFTTests
+[TestClass]
+public class FftTests
 {
+    private GutsyCore Gutsy { get; } = new ();
+    
     /// <exception cref="OverflowException"></exception>
-    [TestMethod()]
+    [TestMethod]
     public void ExecuteTest()
     {
-        var command = GUTSY.GetCommandByName("FFT");
+        var command = Gutsy.Commands.GetFirstByName("FFT");
+        
+        Assert.IsNotNull(command);
 
         var input = new JArray();
-        for (int i = 0; i < 2048; i++)
+        for (var i = 0; i < 2048; i++)
             input.Add(1+Math.Sin(i * 2 * Math.PI * 128 / 2048));
 
         var output = command.Execute(input) as JArray;

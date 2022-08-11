@@ -1,18 +1,16 @@
-﻿using System.Runtime.InteropServices;
-using System.Reflection;
-using System.Security;
+﻿using System.Security;
 using Ivi.Visa;
-using GeneralUnifiedTestSystemYard.Core;
+using GeneralUnifiedTestSystemYard.Core.ClassExtensions;
 
 namespace GeneralUnifiedTestSystemYard.Commands.VISA;
 
 /// <summary>
 /// VISA.NET Shared Components 5.11.0 v2.0.50727 (Taken from NI VISA.NET 21.5 v4.0.30319)
 /// </summary>
-public class VisaWrapper : IGUTSYExtension
+public class Visa
 {
-    public const string wildcard = "?*";
-    public IResourceManager? ResourceManager { get; private set; }
+    public const string Wildcard = "?*";
+    public IResourceManager ResourceManager { get; }
     public SortedDictionary<string, IVisaResourceManagerSupplier> ManagerSuppliers { get; } = new();
     public SortedDictionary<string, IVisaSessionResolver> SessionResolvers { get; } = new();
     public SortedDictionary<string, IVisaDeviceResolver> DeviceResolvers { get; } = new();
@@ -21,15 +19,15 @@ public class VisaWrapper : IGUTSYExtension
     /// <exception cref="IOException"></exception>
     /// <exception cref="UnauthorizedAccessException"></exception>
     /// <exception cref="SecurityException"></exception>
-    VisaWrapper()
+    public Visa()
     {
-        ManagerSuppliers.LoadFromFolder("*GUTSY VISA Resource Manager*.dll");
-        SessionResolvers.LoadFromFolder("*GUTSY VISA Session Resolver*.dll");
-        DeviceResolvers.LoadFromFolder("*GUTSY VISA Device*.dll");
+        ManagerSuppliers.LoadFromFolder("*GUTSY VISA Resource Manager*");
+        SessionResolvers.LoadFromFolder("*GUTSY VISA Session Resolver*");
+        DeviceResolvers.LoadFromFolder("*GUTSY VISA Device*");
 
         foreach (var managerSupplier in ManagerSuppliers.Values)
         {
-            if(managerSupplier.GetResourceManager() is IResourceManager resourceManager)
+            if(managerSupplier.GetResourceManager() is { } resourceManager)
             {
                 ResourceManager = resourceManager;
                 break;
@@ -42,55 +40,54 @@ public class VisaWrapper : IGUTSYExtension
             throw new DllNotFoundException("Could not find a working VISA resource manager");
         }
     }
-    public string GetID() => "VisaWrapper";
 
     /// <exception cref="AggregateException"></exception>
-    public SortedSet<string> FindDevices(IResourceManager resourceManager,string query = wildcard)
+    public SortedSet<string> FindDevices(IResourceManager resourceManager,string query = Wildcard)
     {
-        List<string> list = new();
+        var list = new List<string>();
         var found = resourceManager.Find(query);
 
         var parallel = Parallel.ForEach(found, item => list.AddRange(ResolveSessionAbstractionLayer(item)));
 
         while (!parallel.IsCompleted) { }
 
-        return new(list);
+        return new SortedSet<string>(list);
     }
 
     public IVisaHardware Open(string resource, AccessModes mode = AccessModes.None, int openTimeout = 1000)
     {
-        if (resource is string)
+        foreach (var item in SessionResolvers)
         {
-            foreach (var item in SessionResolvers)
+            try
             {
-                try
+                var session = item.Value.ResolveSession(ResourceManager, resource);
+                if (session is not null)
                 {
-                    var session = item.Value.ResolveSession(ResourceManager, resource);
-                    if (session is IVisaSession)
-                    {
-                        return new Hardware(resource, session);
-                    }
+                    return new Hardware(resource, session);
                 }
-                catch (Exception e) { }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
             }
         }
         return new Hardware(resource, resourceManager.Open(resource, mode, openTimeout));
     }
 
-    public List<string> ResolveSessionAbstractionLayer(string resource)
+    public IEnumerable<string> ResolveSessionAbstractionLayer(string resource)
     {
-        List<string> sessionsGenerated = new List<string>();
-        if (resource is string)
+        var sessionsGenerated = new List<string>();
+        
+        foreach (var generator in SessionFinderRegistry)
         {
-            foreach (var generator in SessionFinderRegistry)
+            var strings = generator.Invoke(resourceManager, resource);
+            if (strings is List<string>)
             {
-                var strings = generator.Invoke(resourceManager, resource);
-                if (strings is List<string>)
-                {
-                    sessionsGenerated.AddRange(strings);
-                }
+                sessionsGenerated.AddRange(strings);
             }
         }
+        
         if (sessionsGenerated.Count == 0)
         {
             sessionsGenerated.Add(resource);
@@ -100,7 +97,7 @@ public class VisaWrapper : IGUTSYExtension
 
     public List<IVisaDevice> ResolveDeviceAbstractionLayer(IVisaHardware resource)
     {
-        List<IVisaDevice> devicesGenerated = new List<IVisaDevice>();
+        var devicesGenerated = new List<IVisaDevice>();
         if (resource.Valid)
         {
             foreach (var generator in Devices)

@@ -5,8 +5,8 @@ namespace GeneralUnifiedTestSystemYard.Commands.VISA;
 
 public interface IVisaHardware : IIdentifiable
 {
-    private const string identifyQuery1 = "*IDN?";
-    private const string identifyQuery2 = "ID?";//todo check
+    private const string IdentifyQuery1 = "*IDN?";
+    private const string IdentifyQuery2 = "ID?";
     public IVisaSession Session { get; }
     public bool Valid { get; }
 }

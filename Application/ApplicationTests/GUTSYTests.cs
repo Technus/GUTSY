@@ -1,21 +1,21 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Numerics;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
-using System.Numerics;
 
-namespace GeneralUnifiedTestSystemYard.Core.Tests;
+namespace ApplicationTests;
 
-[TestClass()]
-public class GUTSYTests
+[TestClass]
+public class GutsyTests
 {
-    [TestMethod()]
+    [TestMethod]
     public void TestJsonArray()
     {
-        var str = @"{'val':[0,3]}";
+        const string str = @"{'val':[0,3]}";
         dynamic json = JObject.Parse(str);
         Console.WriteLine(json.val.ToObject<double[]>());
     }
 
-    [TestMethod()]
+    [TestMethod]
     public void TestJsonComplex()
     {
         Complex complex = new(2,3);

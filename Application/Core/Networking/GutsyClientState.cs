@@ -4,15 +4,15 @@ using System.Text;
 
 namespace GeneralUnifiedTestSystemYard.Core.Networking;
 
-public class GUTSYClientState
+public class GutsyClientState
 {
     internal byte[] Buffer { get; }
     internal Socket WorkSocket { get; }
-    internal StringBuilder StringBuilder { get; } = new StringBuilder();
+    internal StringBuilder StringBuilder { get; } = new();
 
-    public JToken? state { get; set; }
+    public JToken? State { get; set; }
 
-    public GUTSYClientState(Socket workSocket, int bufferSize = 1024)
+    public GutsyClientState(Socket workSocket, int bufferSize = 1024)
     {
         WorkSocket = workSocket;
         Buffer = new byte[bufferSize];

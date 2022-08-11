@@ -1,13 +1,13 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace GeneralUnifiedTestSystemYard.Core;
+namespace GeneralUnifiedTestSystemYard.Core.Command;
 
-public interface IGUTSYCommand : IIdentifiable
+public interface IGutsyCommand : IIdentifiable
 {
     /// <summary>
     /// JSON in JSON out
     /// </summary>
     /// <param name="parameters"></param>
     /// <returns></returns>
-    public JToken? Execute(JToken? parameters);
+    JToken? Execute(JToken? parameters);
 }

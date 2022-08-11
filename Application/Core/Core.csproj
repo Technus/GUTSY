@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <RootNamespace>GeneralUnifiedTestSystemYard.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
     <AssemblyName>GUTSY $(MSBuildProjectName)</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <StartupObject>GeneralUnifiedTestSystemYard.Core.GUTSYStart</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

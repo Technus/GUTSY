@@ -1,22 +1,26 @@
-﻿using GeneralUnifiedTestSystemYard.Core;
+﻿using System.Numerics;
+using GeneralUnifiedTestSystemYard.Core;
+using GeneralUnifiedTestSystemYard.Core.ClassExtensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Numerics;
 
-namespace GeneralUnifiedTestSystemYard.Commands.CommandsTests;
+namespace CommandsTests;
 
-[TestClass()]
-public class IFFTTests
+[TestClass]
+public class IfftTests
 {
+    private GutsyCore Gutsy { get; } = new ();
+    
     /// <exception cref="OverflowException"></exception>
-    [TestMethod()]
+    [TestMethod]
     public void ExecuteTest()
     {
-        var command = GUTSY.GetCommandByName("IFFT");
+        var command = Gutsy.Commands.GetFirstByName("IFFT");
+        
+        Assert.IsNotNull(command);
 
         var input = new List<Complex>();
-        for (int i = 0; i < 1025; i++)
+        for (var i = 0; i < 1025; i++)
         {
             input.Add(Complex.Zero);
         }
