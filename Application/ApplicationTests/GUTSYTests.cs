@@ -18,7 +18,7 @@ public class GutsyTests
     [TestMethod]
     public void TestJsonComplex()
     {
-        Complex complex = new(2,3);
+        Complex complex = new(2, 3);
         dynamic json = JObject.FromObject(complex);
         Console.WriteLine(json);
     }

@@ -7,11 +7,11 @@ namespace GeneralUnifiedTestSystemYard.Commands.AR488;
 
 public class Ar488 : IVisaSessionResolver
 {
-    private readonly Dictionary<string, Ar488Interface> _interfaces = new();
     private const string IdentifyQuery1 = "*IDN?\n";
     private const string IdentifyQuery2 = "ID?\n";
     private const string SerialName = "Arduino";
     private const string SerialVidPid = "VID_2341&PID_8037";
+    private readonly Dictionary<string, Ar488Interface> _interfaces = new();
 
     public string Identifier => "AR488";
 
@@ -22,7 +22,6 @@ public class Ar488 : IVisaSessionResolver
         {
             using var session = resourceManager.Open(resource, AccessModes.None, 1000);
             if (session is ISerialSession serial)
-            {
                 if (serial.HardwareInterfaceName.Contains(SerialName) ||
                     GetSerialPortData(serial.HardwareInterfaceNumber).Contains(SerialVidPid))
                 {
@@ -50,7 +49,7 @@ public class Ar488 : IVisaSessionResolver
                         if (TryFindInterface(serial)) goto found;
                         goto notFound;
 
-                    found: 
+                        found:
                         try
                         {
                             serial.RawIO.Write("++read\n");
@@ -61,7 +60,7 @@ public class Ar488 : IVisaSessionResolver
                                 do
                                 {
                                     bytes = serial.RawIO.Read(1);
-                                } while (bytes is { Length: > 0 });//until empty
+                                } while (bytes is { Length: > 0 }); //until empty
                             }
                             catch (Exception e)
                             {
@@ -74,6 +73,7 @@ public class Ar488 : IVisaSessionResolver
                             Console.WriteLine(e);
                             throw;
                         }
+
                         output.Add($"GPIB::INTFC::AR488::{resource}");
 
                         //Thread.Sleep(100);
@@ -88,7 +88,8 @@ public class Ar488 : IVisaSessionResolver
                         serial.ReadTermination = SerialTerminationMethod.TerminationCharacter;
                         serial.SetBufferSize(IOBuffers.ReadWrite, 1024 * 1024);
 
-                        output.AddRange(TryFindInstruments(serial).Select(device => $"GPIB::{(device < 10 ? "0" : "")}{device}::0::INSTR::AR488::{resource}"));
+                        output.AddRange(TryFindInstruments(serial).Select(device =>
+                            $"GPIB::{(device < 10 ? "0" : "")}{device}::0::INSTR::AR488::{resource}"));
 
                         return output;
                     }
@@ -100,7 +101,7 @@ public class Ar488 : IVisaSessionResolver
                         serial.Flush(IOBuffers.ReadWrite, true);
                     }
                 }
-            }
+
             notFound: ;
         }
         catch (Exception e)
@@ -108,6 +109,7 @@ public class Ar488 : IVisaSessionResolver
             Console.WriteLine(e);
             throw;
         }
+
         return output;
     }
 
@@ -118,15 +120,13 @@ public class Ar488 : IVisaSessionResolver
     public IVisaSession? ResolveSession(IResourceManager resourceManager, string resource)
     {
         if (!resource.Contains("AR488")) return null;
-        
+
         if (resource.Contains("INTFC"))
         {
             if (_interfaces.ContainsKey(resource))
-            {
                 //interfaces[resource].Dispose();
                 //interfaces.Remove(resource);
                 return _interfaces[resource];
-            }
 
             var session = resourceManager.Open(resource.Replace("GPIB::INTFC::AR488::", ""));
             if (session is ISerialSession serial)
@@ -148,28 +148,27 @@ public class Ar488 : IVisaSessionResolver
                     i += 2;
                     found = true;
                 }
+
                 if (found)
                 {
                     parent += path[i];
                     parent += ":";
                 }
             }
+
             parent = parent.Remove(parent.Length - 1);
             if (_interfaces.ContainsKey(parent))
-            {
                 return new Ar488Session(_interfaces[parent], short.Parse(path[2]), short.Parse(path[4]));
-            }
 
-            if(ResolveSession(resourceManager, parent) is Ar488Interface ar488)
-            {
+            if (ResolveSession(resourceManager, parent) is Ar488Interface ar488)
                 return new Ar488Session(ar488, short.Parse(path[2]), short.Parse(path[4]));
-            }
 
             throw new ArgumentException($"Cannot link AR488 reference to device: {resource}");
         }
 
         throw new NotImplementedException($"Unknown type for AR488: {resource}");
     }
+
     private static string GetSerialPortData(int number)
     {
         if (OperatingSystem.IsWindows())
@@ -182,6 +181,7 @@ public class Ar488 : IVisaSessionResolver
 
             return port["DeviceID"].ToString() ?? $"COM{number}";
         }
+
         return $"COM{number}";
     }
 
@@ -233,14 +233,11 @@ public class Ar488 : IVisaSessionResolver
             serial.RawIO.Write("++check all\n");
             devices = uint.Parse(serial.RawIO.ReadString());
         }
+
         var addresses = new List<byte>();
         for (byte device = 0; device < 30; device++)
-        {
             if ((devices & (1 << device)) != 0)
-            {
                 addresses.Add(device);
-            }
-        }
         return addresses.ToArray();
     }
 
@@ -276,22 +273,6 @@ public class Ar488 : IVisaSessionResolver
 
 internal class Ar488Result : IVisaAsyncResult
 {
-    public bool IsAborted { get; }
-
-    public byte[] Buffer { get; }
-
-    public long Count { get; }
-
-    public long Index { get; }
-
-    public bool IsCompleted { get; }
-
-    public WaitHandle AsyncWaitHandle { get; }
-
-    public object AsyncState { get; }
-
-    public bool CompletedSynchronously { get; }
-
     public Ar488Result(
         bool isAborted,
         byte[] buffer,
@@ -311,13 +292,30 @@ internal class Ar488Result : IVisaAsyncResult
         AsyncState = asyncState;
         CompletedSynchronously = completedSynchronously;
     }
+
+    public bool IsAborted { get; }
+
+    public byte[] Buffer { get; }
+
+    public long Count { get; }
+
+    public long Index { get; }
+
+    public bool IsCompleted { get; }
+
+    public WaitHandle AsyncWaitHandle { get; }
+
+    public object AsyncState { get; }
+
+    public bool CompletedSynchronously { get; }
 }
 
 internal class Ar488Raw : IMessageBasedRawIO, IVisaSession
 {
-    private readonly IVisaSession _session;
-    private readonly ISerialSession _serial;
+    private static readonly byte[] Esc = { 0x1B };
     private readonly Ar488Interface _interface;
+    private readonly ISerialSession _serial;
+    private readonly IVisaSession _session;
 
     public Ar488Raw(IVisaSession session, ISerialSession serial)
     {
@@ -330,22 +328,6 @@ internal class Ar488Raw : IMessageBasedRawIO, IVisaSession
             _ => _interface
         } ?? throw new InvalidOperationException("Cannot find AR488 interface");
     }
-
-    public int EventQueueCapacity { get => _session.EventQueueCapacity; set => _session.EventQueueCapacity = value; }
-
-    public string HardwareInterfaceName => _session.HardwareInterfaceName;
-    public short HardwareInterfaceNumber => _session.HardwareInterfaceNumber;
-    public HardwareInterfaceType HardwareInterfaceType => _session.HardwareInterfaceType;
-    public string ResourceClass => _session.ResourceClass;
-    public Version ResourceImplementationVersion => _session.ResourceImplementationVersion;
-    public ResourceLockState ResourceLockState => _session.ResourceLockState;
-    public short ResourceManufacturerId => _session.ResourceManufacturerId;
-    public string ResourceManufacturerName => _session.ResourceManufacturerName;
-    public string ResourceName => _session.ResourceName;
-    public Version ResourceSpecificationVersion => _session.ResourceSpecificationVersion;
-
-    public bool SynchronizeCallbacks { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int TimeoutMilliseconds { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     public void AbortAsyncOperation(IVisaAsyncResult result)
     {
@@ -457,6 +439,126 @@ internal class Ar488Raw : IMessageBasedRawIO, IVisaSession
         throw new NotImplementedException();
     }
 
+    public byte[] Read()
+    {
+        _interface.SendInterfaceCommand("++read eoi");
+        return ReadRaw();
+    }
+
+    public byte[] Read(long count)
+    {
+        throw new NotImplementedException();
+    }
+
+    public byte[] Read(long count, out ReadStatus readStatus)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Read(byte[] buffer, long index, long count, out long actualCount, out ReadStatus readStatus)
+    {
+        throw new NotImplementedException();
+    }
+
+    public unsafe void Read(byte* buffer, long index, long count, out long actualCount, out ReadStatus readStatus)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string ReadString()
+    {
+        _interface.SendInterfaceCommand("++read");
+        return _serial.RawIO.ReadString();
+    }
+
+    public string ReadString(long count)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string ReadString(long count, out ReadStatus readStatus)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Write(byte[] buffer)
+    {
+        for (var i = 0; i < buffer.Length; i++)
+            switch (buffer[i])
+            {
+                case (byte)'\n':
+                case (byte)'\r':
+                case (byte)'+':
+                case (byte)'*':
+                case 0x1B:
+                    _serial.RawIO.Write(Esc);
+                    _serial.RawIO.Write(buffer, i, 1);
+                    break;
+                default:
+                    _serial.RawIO.Write(buffer, i, 1);
+                    break;
+            }
+
+        _serial.RawIO.Write("\n");
+        Thread.Sleep(10);
+    }
+
+    public void Write(byte[] buffer, long index, long count)
+    {
+        throw new NotImplementedException();
+    }
+
+    public unsafe void Write(byte* buffer, long index, long count)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Write(string buffer)
+    {
+        var str = buffer
+            .Replace($"{(char)0x1B}", $"{(char)0x1B}{(char)0x1B}")
+            .Replace("+", $"{(char)0x1B}+")
+            .Replace("*", $"{(char)0x1B}*")
+            .Replace("\r", $"{(char)0x1B}\r")
+            .Replace("\n", $"{(char)0x1B}\n");
+        _serial.RawIO.Write($"{str}\n");
+        Thread.Sleep(10);
+    }
+
+    public void Write(string buffer, long index, long count)
+    {
+        throw new NotImplementedException();
+    }
+
+    public int EventQueueCapacity
+    {
+        get => _session.EventQueueCapacity;
+        set => _session.EventQueueCapacity = value;
+    }
+
+    public string HardwareInterfaceName => _session.HardwareInterfaceName;
+    public short HardwareInterfaceNumber => _session.HardwareInterfaceNumber;
+    public HardwareInterfaceType HardwareInterfaceType => _session.HardwareInterfaceType;
+    public string ResourceClass => _session.ResourceClass;
+    public Version ResourceImplementationVersion => _session.ResourceImplementationVersion;
+    public ResourceLockState ResourceLockState => _session.ResourceLockState;
+    public short ResourceManufacturerId => _session.ResourceManufacturerId;
+    public string ResourceManufacturerName => _session.ResourceManufacturerName;
+    public string ResourceName => _session.ResourceName;
+    public Version ResourceSpecificationVersion => _session.ResourceSpecificationVersion;
+
+    public bool SynchronizeCallbacks
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
+    public int TimeoutMilliseconds
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
 
     public void DisableEvent(EventType eventType)
     {
@@ -533,6 +635,11 @@ internal class Ar488Raw : IMessageBasedRawIO, IVisaSession
         _serial.UnlockResource();
     }
 
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
+
     public byte[] ReadRaw(char? toChar = null)
     {
         var en = _serial.TerminationCharacterEnabled;
@@ -552,30 +659,23 @@ internal class Ar488Raw : IMessageBasedRawIO, IVisaSession
             {
                 using var memStream = new MemoryStream();
                 while (true)
-                {
                     try
                     {
                         bytes = null;
                         bytes = _serial.RawIO.Read(1);
                         memStream.Write(bytes, 0, bytes.Length);
-                        if (toChar is not null && bytes[0] == toChar)
-                        {
-                            return memStream.ToArray();
-                        }
+                        if (toChar is not null && bytes[0] == toChar) return memStream.ToArray();
                     }
                     catch (IOTimeoutException e)
                     {
                         if (bytes is null)
                         {
                             if (memStream.Length == 0)
-                            {
                                 throw new IOTimeoutException(0, null,
                                     $"Failed to get anything, timeout {_serial.TimeoutMilliseconds}", e);
-                            }
                             return memStream.ToArray();
                         }
                     }
-                }
             }
             finally
             {
@@ -588,111 +688,13 @@ internal class Ar488Raw : IMessageBasedRawIO, IVisaSession
             _serial.TerminationCharacterEnabled = en;
         }
     }
-
-    public byte[] Read()
-    {
-        _interface.SendInterfaceCommand("++read eoi");
-        return ReadRaw();
-    }
-
-    public byte[] Read(long count)
-    {
-        throw new NotImplementedException();
-    }
-
-    public byte[] Read(long count, out ReadStatus readStatus)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Read(byte[] buffer, long index, long count, out long actualCount, out ReadStatus readStatus)
-    {
-        throw new NotImplementedException();
-    }
-
-    public unsafe void Read(byte* buffer, long index, long count, out long actualCount, out ReadStatus readStatus)
-    {
-        throw new NotImplementedException();
-    }
-
-    public string ReadString()
-    {
-        _interface.SendInterfaceCommand("++read");
-        return _serial.RawIO.ReadString();
-    }
-
-    public string ReadString(long count)
-    {
-        throw new NotImplementedException();
-    }
-
-    public string ReadString(long count, out ReadStatus readStatus)
-    {
-        throw new NotImplementedException();
-    }
-
-    private static readonly byte[] Esc = { 0x1B };
-    public void Write(byte[] buffer)
-    {
-        for (var i = 0; i < buffer.Length; i++)
-        {
-            switch (buffer[i])
-            {
-                case (byte)'\n':
-                case (byte)'\r':
-                case (byte)'+':
-                case (byte)'*':
-                case 0x1B:
-                    _serial.RawIO.Write(Esc);
-                    _serial.RawIO.Write(buffer, i, 1);
-                    break;
-                default:
-                    _serial.RawIO.Write(buffer, i, 1);
-                    break;
-            }
-        }
-        _serial.RawIO.Write("\n");
-        Thread.Sleep(10);
-    }
-
-    public void Write(byte[] buffer, long index, long count)
-    {
-        throw new NotImplementedException();
-    }
-
-    public unsafe void Write(byte* buffer, long index, long count)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Write(string buffer)
-    {
-        var str = buffer
-            .Replace($"{(char)0x1B}", $"{(char)0x1B}{(char)0x1B}")
-            .Replace("+", $"{(char)0x1B}+")
-            .Replace("*", $"{(char)0x1B}*")
-            .Replace("\r", $"{(char)0x1B}\r")
-            .Replace("\n", $"{(char)0x1B}\n");
-        _serial.RawIO.Write($"{str}\n");
-        Thread.Sleep(10);
-    }
-
-    public void Write(string buffer, long index, long count)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Dispose()
-    {
-        throw new NotImplementedException();
-    }
 }
 
 internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
 {
-    private IVisaSession _session;
+    private readonly Ar488Interface _interface;
     private IMessageBasedRawIO _raw;
-    private Ar488Interface _interface;
+    private readonly IVisaSession _session;
 
     public Ar488Formatted(IVisaSession session, IMessageBasedRawIO raw)
     {
@@ -706,74 +708,36 @@ internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
         } ?? throw new InvalidOperationException("Cannot find AR488 interface");
     }
 
-    public int ReadBufferSize { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int WriteBufferSize { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public int ReadBufferSize
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
+    public int WriteBufferSize
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
     public void DiscardBuffers()
     {
         throw new NotImplementedException();
     }
 
-    public BinaryEncoding BinaryEncoding { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public ITypeFormatter TypeFormatter { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-    public int EventQueueCapacity { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-    public string HardwareInterfaceName => _session.HardwareInterfaceName;
-    public short HardwareInterfaceNumber => _session.HardwareInterfaceNumber;
-    public HardwareInterfaceType HardwareInterfaceType => _session.HardwareInterfaceType;
-    public string ResourceClass => _session.ResourceClass;
-    public Version ResourceImplementationVersion => _session.ResourceImplementationVersion;
-    public ResourceLockState ResourceLockState => _session.ResourceLockState;
-    public short ResourceManufacturerId => _session.ResourceManufacturerId;
-    public string ResourceManufacturerName => _session.ResourceManufacturerName;
-    public string ResourceName => _session.ResourceName;
-    public Version ResourceSpecificationVersion => _session.ResourceSpecificationVersion;
-
-    public bool SynchronizeCallbacks { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-    public int TimeoutMilliseconds { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-    public void DisableEvent(EventType eventType)
+    public BinaryEncoding BinaryEncoding
     {
-        throw new NotImplementedException();
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
     }
 
-    public void DiscardEvents(EventType eventType)
+    public ITypeFormatter TypeFormatter
     {
-        throw new NotImplementedException();
-    }
-
-    public void EnableEvent(EventType eventType)
-    {
-        throw new NotImplementedException();
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
     }
 
     public void FlushWrite(bool sendEnd)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void LockResource()
-    {
-        throw new NotImplementedException();
-    }
-
-    public void LockResource(TimeSpan timeout)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void LockResource(int timeoutMilliseconds)
-    {
-        throw new NotImplementedException();
-    }
-
-    public string LockResource(TimeSpan timeout, string sharedKey)
-    {
-        throw new NotImplementedException();
-    }
-
-    public string LockResource(int timeoutMilliseconds, string sharedKey)
     {
         throw new NotImplementedException();
     }
@@ -1568,17 +1532,20 @@ internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
         throw new NotImplementedException();
     }
 
-    public void Scanf<T1, T2, T3, T4, T5>(string format, out T1 output1, out T2 output2, out T3 output3, out T4 output4, out T5 output5)
+    public void Scanf<T1, T2, T3, T4, T5>(string format, out T1 output1, out T2 output2, out T3 output3, out T4 output4,
+        out T5 output5)
     {
         throw new NotImplementedException();
     }
 
-    public void Scanf<T1, T2, T3, T4, T5, T6>(string format, out T1 output1, out T2 output2, out T3 output3, out T4 output4, out T5 output5, out T6 output6)
+    public void Scanf<T1, T2, T3, T4, T5, T6>(string format, out T1 output1, out T2 output2, out T3 output3,
+        out T4 output4, out T5 output5, out T6 output6)
     {
         throw new NotImplementedException();
     }
 
-    public void Scanf<T1, T2, T3, T4, T5, T6, T7>(string format, out T1 output1, out T2 output2, out T3 output3, out T4 output4, out T5 output5, out T6 output6, out T7 output7)
+    public void Scanf<T1, T2, T3, T4, T5, T6, T7>(string format, out T1 output1, out T2 output2, out T3 output3,
+        out T4 output4, out T5 output5, out T6 output6, out T7 output7)
     {
         throw new NotImplementedException();
     }
@@ -1598,22 +1565,26 @@ internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
         throw new NotImplementedException();
     }
 
-    public void Scanf<T1, T2, T3, T4>(string format, long[] inputs, out T1 output1, out T2 output2, out T3 output3, out T4 output4)
+    public void Scanf<T1, T2, T3, T4>(string format, long[] inputs, out T1 output1, out T2 output2, out T3 output3,
+        out T4 output4)
     {
         throw new NotImplementedException();
     }
 
-    public void Scanf<T1, T2, T3, T4, T5>(string format, long[] inputs, out T1 output1, out T2 output2, out T3 output3, out T4 output4, out T5 output5)
+    public void Scanf<T1, T2, T3, T4, T5>(string format, long[] inputs, out T1 output1, out T2 output2, out T3 output3,
+        out T4 output4, out T5 output5)
     {
         throw new NotImplementedException();
     }
 
-    public void Scanf<T1, T2, T3, T4, T5, T6>(string format, long[] inputs, out T1 output1, out T2 output2, out T3 output3, out T4 output4, out T5 output5, out T6 output6)
+    public void Scanf<T1, T2, T3, T4, T5, T6>(string format, long[] inputs, out T1 output1, out T2 output2,
+        out T3 output3, out T4 output4, out T5 output5, out T6 output6)
     {
         throw new NotImplementedException();
     }
 
-    public void Scanf<T1, T2, T3, T4, T5, T6, T7>(string format, long[] inputs, out T1 output1, out T2 output2, out T3 output3, out T4 output4, out T5 output5, out T6 output6, out T7 output7)
+    public void Scanf<T1, T2, T3, T4, T5, T6, T7>(string format, long[] inputs, out T1 output1, out T2 output2,
+        out T3 output3, out T4 output4, out T5 output5, out T6 output6, out T7 output7)
     {
         throw new NotImplementedException();
     }
@@ -1679,41 +1650,6 @@ internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
     }
 
     public void SkipUntilEnd()
-    {
-        throw new NotImplementedException();
-    }
-
-    public void UnlockResource()
-    {
-        throw new NotImplementedException();
-    }
-
-    public VisaEventArgs WaitOnEvent(EventType eventType)
-    {
-        throw new NotImplementedException();
-    }
-
-    public VisaEventArgs WaitOnEvent(EventType eventType, out EventQueueStatus status)
-    {
-        throw new NotImplementedException();
-    }
-
-    public VisaEventArgs WaitOnEvent(EventType eventType, int timeoutMilliseconds)
-    {
-        throw new NotImplementedException();
-    }
-
-    public VisaEventArgs WaitOnEvent(EventType eventType, TimeSpan timeout)
-    {
-        throw new NotImplementedException();
-    }
-
-    public VisaEventArgs WaitOnEvent(EventType eventType, int timeoutMilliseconds, out EventQueueStatus status)
-    {
-        throw new NotImplementedException();
-    }
-
-    public VisaEventArgs WaitOnEvent(EventType eventType, TimeSpan timeout, out EventQueueStatus status)
     {
         throw new NotImplementedException();
     }
@@ -2173,6 +2109,110 @@ internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
         throw new NotImplementedException();
     }
 
+    public int EventQueueCapacity
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
+    public string HardwareInterfaceName => _session.HardwareInterfaceName;
+    public short HardwareInterfaceNumber => _session.HardwareInterfaceNumber;
+    public HardwareInterfaceType HardwareInterfaceType => _session.HardwareInterfaceType;
+    public string ResourceClass => _session.ResourceClass;
+    public Version ResourceImplementationVersion => _session.ResourceImplementationVersion;
+    public ResourceLockState ResourceLockState => _session.ResourceLockState;
+    public short ResourceManufacturerId => _session.ResourceManufacturerId;
+    public string ResourceManufacturerName => _session.ResourceManufacturerName;
+    public string ResourceName => _session.ResourceName;
+    public Version ResourceSpecificationVersion => _session.ResourceSpecificationVersion;
+
+    public bool SynchronizeCallbacks
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
+    public int TimeoutMilliseconds
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
+    public void DisableEvent(EventType eventType)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void DiscardEvents(EventType eventType)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void EnableEvent(EventType eventType)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void LockResource()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void LockResource(TimeSpan timeout)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void LockResource(int timeoutMilliseconds)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string LockResource(TimeSpan timeout, string sharedKey)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string LockResource(int timeoutMilliseconds, string sharedKey)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void UnlockResource()
+    {
+        throw new NotImplementedException();
+    }
+
+    public VisaEventArgs WaitOnEvent(EventType eventType)
+    {
+        throw new NotImplementedException();
+    }
+
+    public VisaEventArgs WaitOnEvent(EventType eventType, out EventQueueStatus status)
+    {
+        throw new NotImplementedException();
+    }
+
+    public VisaEventArgs WaitOnEvent(EventType eventType, int timeoutMilliseconds)
+    {
+        throw new NotImplementedException();
+    }
+
+    public VisaEventArgs WaitOnEvent(EventType eventType, TimeSpan timeout)
+    {
+        throw new NotImplementedException();
+    }
+
+    public VisaEventArgs WaitOnEvent(EventType eventType, int timeoutMilliseconds, out EventQueueStatus status)
+    {
+        throw new NotImplementedException();
+    }
+
+    public VisaEventArgs WaitOnEvent(EventType eventType, TimeSpan timeout, out EventQueueStatus status)
+    {
+        throw new NotImplementedException();
+    }
+
     public void Dispose()
     {
         throw new NotImplementedException();
@@ -2181,11 +2221,16 @@ internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
 
 internal class Ar488Interface : IGpibInterfaceSession
 {
-    public ISerialSession Serial { get; }
-    public IMessageBasedRawIO RawIO { get; }
-
-    private string _ver, _verReal;
+    private short _paddr, _saddr;
     private Thread _scanner;
+
+    private bool _sendEnd;
+
+    private byte _terminatorChar; //todo lazy
+    private bool _terminatorEnable; //todo lazy
+
+    private readonly string _ver;
+    private readonly string _verReal;
 
     public Ar488Interface(ISerialSession serial)
     {
@@ -2205,8 +2250,11 @@ internal class Ar488Interface : IGpibInterfaceSession
             {
                 _ver = ReadInterfaceResponse();
             }
-            catch (IOTimeoutException) { }
+            catch (IOTimeoutException)
+            {
+            }
         }
+
         SendInterfaceCommand("++ver real");
         _verReal = ReadInterfaceResponse();
 
@@ -2224,38 +2272,24 @@ internal class Ar488Interface : IGpibInterfaceSession
                 var previousSrq = LineState.Unasserted;
                 var actualSrq = LineState.Unasserted;
                 while (true)
-                {
                     lock (Serial)
                     {
                         previousSrq = actualSrq;
                         actualSrq = SrqState;
                         if (actualSrq == LineState.Asserted && previousSrq == LineState.Unasserted)
-                        {
                             ServiceRequest?.Invoke(this, new VisaEventArgs(EventType.ServiceRequest));
-                        }
                         previousSrq = SrqState;
                     }
-                }
             }
-            catch (ThreadAbortException) { }
+            catch (ThreadAbortException)
+            {
+            }
         });
         //_scanner.Start();
     }
 
-    public void SendInterfaceCommand(string command)
-    {
-        Serial.RawIO.Write($"{command}\n");
-        Thread.Sleep(10);
-    }
-
-    public string ReadInterfaceResponse()
-    {
-        if(RawIO is Ar488Raw raw )
-        {
-            return Encoding.UTF8.GetString(raw.ReadRaw('\n'));
-        }
-        throw new InvalidOperationException("Raw IO was not AR488 Raw io");
-    }
+    public ISerialSession Serial { get; }
+    public IMessageBasedRawIO RawIO { get; }
 
     public string HardwareInterfaceName => $"{_verReal} on {Serial.HardwareInterfaceName}";
     public short HardwareInterfaceNumber => Serial.HardwareInterfaceNumber;
@@ -2292,7 +2326,11 @@ internal class Ar488Interface : IGpibInterfaceSession
         }
     }
 
-    public bool AllowDma { get => false; set { } }
+    public bool AllowDma
+    {
+        get => false;
+        set { }
+    }
 
     public LineState AtnState
     {
@@ -2303,6 +2341,7 @@ internal class Ar488Interface : IGpibInterfaceSession
             return (state & 128) != 0 ? LineState.Asserted : LineState.Unasserted;
         }
     }
+
     public LineState NdacState
     {
         get
@@ -2312,6 +2351,7 @@ internal class Ar488Interface : IGpibInterfaceSession
             return (state & 2) != 0 ? LineState.Asserted : LineState.Unasserted;
         }
     }
+
     public LineState RenState
     {
         get
@@ -2321,6 +2361,7 @@ internal class Ar488Interface : IGpibInterfaceSession
             return (state & 32) != 0 ? LineState.Asserted : LineState.Unasserted;
         }
     }
+
     public LineState SrqState
     {
         get
@@ -2331,8 +2372,17 @@ internal class Ar488Interface : IGpibInterfaceSession
         }
     }
 
-    public short HS488CableLength { get => -1; set { } }
-    public IOProtocol IOProtocol { get => IOProtocol.Normal; set { } }
+    public short HS488CableLength
+    {
+        get => -1;
+        set { }
+    }
+
+    public IOProtocol IOProtocol
+    {
+        get => IOProtocol.Normal;
+        set { }
+    }
 
     public byte DeviceStatusByte
     {
@@ -2346,6 +2396,7 @@ internal class Ar488Interface : IGpibInterfaceSession
     }
 
     public bool IsControllerInCharge => IsSystemController;
+
     public bool IsSystemController
     {
         get
@@ -2361,7 +2412,6 @@ internal class Ar488Interface : IGpibInterfaceSession
         }
     }
 
-    private short _paddr, _saddr;
     public short PrimaryAddress
     {
         get
@@ -2376,6 +2426,7 @@ internal class Ar488Interface : IGpibInterfaceSession
             SendInterfaceCommand($"++addr {value} {SecondaryAddress}");
         }
     }
+
     public short SecondaryAddress
     {
         get
@@ -2384,7 +2435,7 @@ internal class Ar488Interface : IGpibInterfaceSession
             try
             {
                 var str = ReadInterfaceResponse().Split(' ');
-                var saddrStr = str.Length>1?str[1]:"0";
+                var saddrStr = str.Length > 1 ? str[1] : "0";
                 var saddr = short.Parse(saddrStr);
                 return _saddr = saddr;
             }
@@ -2400,7 +2451,6 @@ internal class Ar488Interface : IGpibInterfaceSession
         }
     }
 
-    private bool _sendEnd;
     public bool SendEndEnabled
     {
         get
@@ -2416,8 +2466,6 @@ internal class Ar488Interface : IGpibInterfaceSession
         }
     }
 
-    private byte _terminatorChar;//todo lazy
-    private bool _terminatorEnable;//todo lazy
     public byte TerminationCharacter
     {
         get
@@ -2464,6 +2512,7 @@ internal class Ar488Interface : IGpibInterfaceSession
             }
         }
     }
+
     public bool TerminationCharacterEnabled
     {
         get
@@ -2501,8 +2550,17 @@ internal class Ar488Interface : IGpibInterfaceSession
         }
     }
 
-    public int EventQueueCapacity { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public bool SynchronizeCallbacks { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public int EventQueueCapacity
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
+    public bool SynchronizeCallbacks
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
 
     public int TimeoutMilliseconds
     {
@@ -2544,6 +2602,7 @@ internal class Ar488Interface : IGpibInterfaceSession
     {
         PassControl(primaryAddress, 0);
     }
+
     public void PassControl(short primaryAddress, short secondaryAddress)
     {
         throw new NotImplementedException();
@@ -2588,34 +2647,42 @@ internal class Ar488Interface : IGpibInterfaceSession
     {
         throw new NotImplementedException();
     }
+
     public void DisableEvent(EventType eventType)
     {
         throw new NotImplementedException();
     }
+
     public void DiscardEvents(EventType eventType)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, out EventQueueStatus status)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, int timeoutMilliseconds)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, TimeSpan timeout)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, int timeoutMilliseconds, out EventQueueStatus status)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, TimeSpan timeout, out EventQueueStatus status)
     {
         throw new NotImplementedException();
@@ -2625,22 +2692,27 @@ internal class Ar488Interface : IGpibInterfaceSession
     {
         Serial.LockResource();
     }
+
     public void LockResource(TimeSpan timeout)
     {
         Serial.LockResource(timeout);
     }
+
     public void LockResource(int timeoutMilliseconds)
     {
         Serial.LockResource(timeoutMilliseconds);
     }
+
     public string LockResource(TimeSpan timeout, string sharedKey)
     {
         return Serial.LockResource(timeout, sharedKey);
     }
+
     public string LockResource(int timeoutMilliseconds, string sharedKey)
     {
         return Serial.LockResource(timeoutMilliseconds, sharedKey);
     }
+
     public void UnlockResource()
     {
         Serial.UnlockResource();
@@ -2651,14 +2723,22 @@ internal class Ar488Interface : IGpibInterfaceSession
         //_scanner.Abort();
         //Serial.Dispose();
     }
+
+    public void SendInterfaceCommand(string command)
+    {
+        Serial.RawIO.Write($"{command}\n");
+        Thread.Sleep(10);
+    }
+
+    public string ReadInterfaceResponse()
+    {
+        if (RawIO is Ar488Raw raw) return Encoding.UTF8.GetString(raw.ReadRaw('\n'));
+        throw new InvalidOperationException("Raw IO was not AR488 Raw io");
+    }
 }
 
 internal class Ar488Session : IGpibSession
 {
-    public Ar488Interface Interface { get; private set; }
-    public IMessageBasedRawIO RawIO { get; private set; }
-    public IMessageBasedFormattedIO FormattedIO { get; private set; }
-
     public Ar488Session(Ar488Interface controllerInterface, short paddr, short saddr)
     {
         Interface = controllerInterface;
@@ -2669,6 +2749,10 @@ internal class Ar488Session : IGpibSession
         SecondaryAddress = saddr;
     }
 
+    public Ar488Interface Interface { get; }
+    public IMessageBasedRawIO RawIO { get; }
+    public IMessageBasedFormattedIO FormattedIO { get; }
+
     public short PrimaryAddress { get; }
     public short SecondaryAddress { get; }
 
@@ -2676,12 +2760,25 @@ internal class Ar488Session : IGpibSession
     public byte TerminationCharacter { get; set; }
     public bool TerminationCharacterEnabled { get; set; }
 
-    public bool AllowDma { get => false; set { } }
+    public bool AllowDma
+    {
+        get => false;
+        set { }
+    }
 
     public LineState RenState => Interface.RenState;
 
-    public bool ReaddressingEnabled { get => true; set { } }
-    public bool UnaddressingEnabled { get => true; set { } }
+    public bool ReaddressingEnabled
+    {
+        get => true;
+        set { }
+    }
+
+    public bool UnaddressingEnabled
+    {
+        get => true;
+        set { }
+    }
 
     public void SendRemoteLocalCommand(RemoteLocalMode mode)
     {
@@ -2702,15 +2799,13 @@ internal class Ar488Session : IGpibSession
                 var ren = RenState;
                 Interface.SendInterfaceCommand("++ren 1");
                 Interface.SendInterfaceCommand("++loc");
-                if (ren == LineState.Asserted)
-                {
-                    Interface.SendInterfaceCommand("++ren 1");
-                }
+                if (ren == LineState.Asserted) Interface.SendInterfaceCommand("++ren 1");
                 break;
             default:
                 throw new InvalidOperationException($"Cannot set to: {mode}");
         }
     }
+
     public void SendRemoteLocalCommand(GpibInstrumentRemoteLocalMode mode)
     {
         switch (mode)
@@ -2736,19 +2831,24 @@ internal class Ar488Session : IGpibSession
                 var ren = RenState;
                 Interface.SendInterfaceCommand("++ren 1");
                 Interface.SendInterfaceCommand("++loc");
-                if (ren == LineState.Asserted)
-                {
-                    Interface.SendInterfaceCommand("++ren 1");
-                }
+                if (ren == LineState.Asserted) Interface.SendInterfaceCommand("++ren 1");
                 break;
             default:
                 throw new InvalidOperationException($"Cannot set to: {mode}");
         }
     }
 
-    public IOProtocol IOProtocol { get => Interface.IOProtocol; set => Interface.IOProtocol = value; }
+    public IOProtocol IOProtocol
+    {
+        get => Interface.IOProtocol;
+        set => Interface.IOProtocol = value;
+    }
 
-    public int EventQueueCapacity { get => Interface.EventQueueCapacity; set => Interface.EventQueueCapacity = value; }
+    public int EventQueueCapacity
+    {
+        get => Interface.EventQueueCapacity;
+        set => Interface.EventQueueCapacity = value;
+    }
 
     public string HardwareInterfaceName => Interface.HardwareInterfaceName;
     public short HardwareInterfaceNumber => Interface.HardwareInterfaceNumber;
@@ -2758,12 +2858,23 @@ internal class Ar488Session : IGpibSession
     public ResourceLockState ResourceLockState => Interface.ResourceLockState;
     public short ResourceManufacturerId => Interface.ResourceManufacturerId;
     public string ResourceManufacturerName => Interface.ResourceManufacturerName;
+
     public string ResourceName => Interface.ResourceName.Replace(Interface.ResourceClass,
         $"{(PrimaryAddress < 10 ? "0" : "") + PrimaryAddress}::{(SecondaryAddress < 10 ? "0" : "") + SecondaryAddress}::{ResourceClass}");
+
     public Version ResourceSpecificationVersion => Interface.ResourceSpecificationVersion;
 
-    public bool SynchronizeCallbacks { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public int TimeoutMilliseconds { get => Interface.TimeoutMilliseconds; set => Interface.TimeoutMilliseconds = value; }
+    public bool SynchronizeCallbacks
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
+
+    public int TimeoutMilliseconds
+    {
+        get => Interface.TimeoutMilliseconds;
+        set => Interface.TimeoutMilliseconds = value;
+    }
 
     public event EventHandler<VisaEventArgs> ServiceRequest;
 
@@ -2788,10 +2899,12 @@ internal class Ar488Session : IGpibSession
     {
         throw new NotImplementedException();
     }
+
     public void DiscardEvents(EventType eventType)
     {
         throw new NotImplementedException();
     }
+
     public void EnableEvent(EventType eventType)
     {
         throw new NotImplementedException();
@@ -2801,22 +2914,27 @@ internal class Ar488Session : IGpibSession
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, out EventQueueStatus status)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, int timeoutMilliseconds)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, TimeSpan timeout)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, int timeoutMilliseconds, out EventQueueStatus status)
     {
         throw new NotImplementedException();
     }
+
     public VisaEventArgs WaitOnEvent(EventType eventType, TimeSpan timeout, out EventQueueStatus status)
     {
         throw new NotImplementedException();
@@ -2826,22 +2944,27 @@ internal class Ar488Session : IGpibSession
     {
         Interface.LockResource();
     }
+
     public void LockResource(TimeSpan timeout)
     {
         Interface.LockResource(timeout);
     }
+
     public void LockResource(int timeoutMilliseconds)
     {
         Interface.LockResource(timeoutMilliseconds);
     }
+
     public string LockResource(TimeSpan timeout, string sharedKey)
     {
         return Interface.LockResource(timeout, sharedKey);
     }
+
     public string LockResource(int timeoutMilliseconds, string sharedKey)
     {
         return Interface.LockResource(timeoutMilliseconds, sharedKey);
     }
+
     public void UnlockResource()
     {
         Interface.UnlockResource();
@@ -2849,6 +2972,6 @@ internal class Ar488Session : IGpibSession
 
     public void Dispose()
     {
-        Interface.Dispose();//wouldn't that cause evilness?
+        Interface.Dispose(); //wouldn't that cause evilness?
     }
 }

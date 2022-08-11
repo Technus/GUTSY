@@ -5,7 +5,7 @@ namespace GeneralUnifiedTestSystemYard.Core.Command;
 public interface IGutsyCommand : IIdentifiable
 {
     /// <summary>
-    /// JSON in JSON out
+    ///     JSON in JSON out
     /// </summary>
     /// <param name="parameters"></param>
     /// <returns></returns>

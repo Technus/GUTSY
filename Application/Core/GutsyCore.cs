@@ -1,17 +1,14 @@
-﻿using GeneralUnifiedTestSystemYard.Core.ClassExtensions;
+﻿using System.Security;
+using GeneralUnifiedTestSystemYard.Core.ClassExtensions;
 using GeneralUnifiedTestSystemYard.Core.Command;
 using GeneralUnifiedTestSystemYard.Core.Exceptions;
 using GeneralUnifiedTestSystemYard.Core.Extension;
 using Newtonsoft.Json;
-using System.Security;
 
 namespace GeneralUnifiedTestSystemYard.Core;
 
 public class GutsyCore
 {
-    public SortedDictionary<string, IGutsyCommand> Commands { get; } = new();
-    public SortedDictionary<string, IGutsyModule> Extensions { get; } = new();
-
     /// <exception cref="IOException"></exception>
     /// <exception cref="UnauthorizedAccessException"></exception>
     /// <exception cref="SecurityException"></exception>
@@ -33,8 +30,11 @@ public class GutsyCore
         });
     }
 
+    public SortedDictionary<string, IGutsyCommand> Commands { get; } = new();
+    public SortedDictionary<string, IGutsyModule> Extensions { get; } = new();
+
     /// <summary>
-    /// Just a string wrapper for Process based on objects, allows direct JSON string IO.
+    ///     Just a string wrapper for Process based on objects, allows direct JSON string IO.
     /// </summary>
     /// <param name="requestString"></param>
     /// <returns></returns>
@@ -42,7 +42,6 @@ public class GutsyCore
     {
         GutsyResponse response;
         if (requestString != null && requestString.Trim().Length > 0)
-        {
             try
             {
                 var request = JsonConvert.DeserializeObject<GutsyRequest?>(requestString);
@@ -55,11 +54,9 @@ public class GutsyCore
                     Exception = new RequestUndefinedException("Cannot parse request", e)
                 };
             }
-        }
         else
-        {
             response = Process(null);
-        }
+
         return JsonConvert.SerializeObject(response);
     }
 
@@ -67,11 +64,11 @@ public class GutsyCore
     {
         var response = new GutsyResponse();
         if (request == null) return response;
-        
+
         response.Command = request.Command;
         response.Guid = request.Guid;
 
-        if (request.Command is {} commandId)
+        if (request.Command is { } commandId)
         {
             if (Commands.GetFirstByName(commandId) is { } command)
             {
@@ -83,7 +80,7 @@ public class GutsyCore
                 catch (Exception e)
                 {
                     response.Parameters = request.Parameters;
-                    response.Exception = new CommandFailedException("Failed to run command",e);
+                    response.Exception = new CommandFailedException("Failed to run command", e);
                 }
             }
             else
@@ -97,6 +94,7 @@ public class GutsyCore
             response.Parameters = request.Parameters;
             response.Exception = new CommandUndefinedException("Command Name unspecified");
         }
+
         return response;
     }
 }

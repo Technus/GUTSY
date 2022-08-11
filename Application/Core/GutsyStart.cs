@@ -4,9 +4,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
-using CMD =  System.Console;
-
 namespace GeneralUnifiedTestSystemYard.Core;
+
 public static class GutsyStart
 {
     /// <exception cref="IOException"></exception>
@@ -19,12 +18,11 @@ public static class GutsyStart
             {
                 var json = File.ReadAllText(parameters[0]);
                 var settings = JsonConvert.DeserializeObject<GutsySettings>(json);
-
             }
             else
             {
                 var server = new GutsyServer();
-                CMD.WriteLine("Gutsy Server starting on local host");
+                Console.WriteLine("Gutsy Server starting on local host");
                 server.StartListeningOnLocalHost();
             }
         }
@@ -32,12 +30,13 @@ public static class GutsyStart
         {
             throw new Exception("Failed to start GUTSY", ex);
         }
+
         return 0;
     }
 
     /// <summary>
-    /// Sets state of the JSON converter, to be more human readable.
-    /// Also to enforce Naming Strategy to Camel Case and enums to strings.
+    ///     Sets state of the JSON converter, to be more human readable.
+    ///     Also to enforce Naming Strategy to Camel Case and enums to strings.
     /// </summary>
     private static void InitializeJsonConvert()
     {

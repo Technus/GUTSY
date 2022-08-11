@@ -11,7 +11,10 @@ public class VisaModule : IGutsyModule
     /// <exception cref="IOException"></exception>
     /// <exception cref="UnauthorizedAccessException"></exception>
     /// <exception cref="System.Security.SecurityException"></exception>
-    public void Activate(GutsyCore gutsy) => Visa ??= new Visa();
+    public void Activate(GutsyCore gutsy)
+    {
+        Visa ??= new Visa();
+    }
 
     public string Identifier => "VISA";
 }

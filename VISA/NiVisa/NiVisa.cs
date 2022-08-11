@@ -15,7 +15,7 @@ public class NiVisa : IVisaResourceManagerSupplier
         {
             return new ResourceManager();
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             throw new DllNotFoundException("This VISA driver needs NI VISA.NET 21.5 installed", e);
         }

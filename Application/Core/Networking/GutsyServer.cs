@@ -1,13 +1,13 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Security;
+using System.Text;
 using GeneralUnifiedTestSystemYard.Core.Exceptions;
 
 namespace GeneralUnifiedTestSystemYard.Core.Networking;
 
 /// <summary>
-/// Default port number is 57526. The digits on top of GUTSY letters on QWERTY keyboard.
+///     Default port number is 57526. The digits on top of GUTSY letters on QWERTY keyboard.
 /// </summary>
 public class GutsyServer
 {
@@ -19,7 +19,10 @@ public class GutsyServer
     /// <exception cref="UnauthorizedAccessException"></exception>
     /// <exception cref="SecurityException"></exception>
     /// <exception cref="ExtensionException"></exception>
-    public GutsyServer(GutsyCore? gutsy = null) => _gutsy = gutsy??new GutsyCore();
+    public GutsyServer(GutsyCore? gutsy = null)
+    {
+        _gutsy = gutsy ?? new GutsyCore();
+    }
 
     // Thread signal.
     public ManualResetEvent AllDone { get; } = new(false);
@@ -29,16 +32,20 @@ public class GutsyServer
     /// <exception cref="SecurityException"></exception>
     /// <exception cref="NotSupportedException"></exception>
     /// <exception cref="AbandonedMutexException"></exception>
-    public void StartListeningOnAddress(int port = DefaultPort, string address = DefaultHost) =>
+    public void StartListeningOnAddress(int port = DefaultPort, string address = DefaultHost)
+    {
         StartListening(port, IPAddress.Parse(address));
+    }
 
     /// <exception cref="FormatException"></exception>
     /// <exception cref="SocketException"></exception>
     /// <exception cref="SecurityException"></exception>
     /// <exception cref="NotSupportedException"></exception>
     /// <exception cref="AbandonedMutexException"></exception>
-    public void StartListeningOnLocalHost(int port = DefaultPort) =>
+    public void StartListeningOnLocalHost(int port = DefaultPort)
+    {
         StartListeningOnAddress(port);
+    }
 
     /// <exception cref="SocketException"></exception>
     /// <exception cref="SecurityException"></exception>
@@ -120,7 +127,7 @@ public class GutsyServer
                 if (state.StringBuilder.ToString() is var content && content.IndexOf('\n') > -1)
                 {
                     // Send the data back to the client.
-                    var returnStr=Process(state.StringBuilder);
+                    var returnStr = Process(state.StringBuilder);
                     state.StringBuilder.Clear();
                     Send(handler, Encoding.ASCII.GetBytes(returnStr));
                 }
