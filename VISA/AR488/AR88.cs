@@ -693,8 +693,8 @@ internal class Ar488Raw : IMessageBasedRawIO, IVisaSession
 internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
 {
     private readonly Ar488Interface _interface;
-    private IMessageBasedRawIO _raw;
     private readonly IVisaSession _session;
+    private IMessageBasedRawIO _raw;
 
     public Ar488Formatted(IVisaSession session, IMessageBasedRawIO raw)
     {
@@ -2221,6 +2221,8 @@ internal class Ar488Formatted : IMessageBasedFormattedIO, IVisaSession
 
 internal class Ar488Interface : IGpibInterfaceSession
 {
+    private readonly string _ver;
+    private readonly string _verReal;
     private short _paddr, _saddr;
     private Thread _scanner;
 
@@ -2228,9 +2230,6 @@ internal class Ar488Interface : IGpibInterfaceSession
 
     private byte _terminatorChar; //todo lazy
     private bool _terminatorEnable; //todo lazy
-
-    private readonly string _ver;
-    private readonly string _verReal;
 
     public Ar488Interface(ISerialSession serial)
     {

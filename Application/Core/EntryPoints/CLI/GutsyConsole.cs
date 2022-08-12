@@ -1,6 +1,4 @@
-﻿using System.Security;
-using System.Text;
-using GeneralUnifiedTestSystemYard.Core.Exceptions;
+﻿using System.Text;
 using Newtonsoft.Json.Linq;
 
 namespace GeneralUnifiedTestSystemYard.Core.EntryPoints.CLI;
@@ -8,12 +6,11 @@ namespace GeneralUnifiedTestSystemYard.Core.EntryPoints.CLI;
 public class GutsyConsole : IGutsyEntryPoint
 {
     public string Identifier => "CLI";
-    
+
     public void Start(GutsyCore gutsy, JToken? token)
     {
         Console.WriteLine("Insert JSON as single line, or file path:");
-        while (Console.ReadLine() is {} line)
-        {
+        while (Console.ReadLine() is { } line)
             try
             {
                 var json = line.Contains('{') ? line : File.ReadAllText(line, Encoding.ASCII);
@@ -23,6 +20,5 @@ public class GutsyConsole : IGutsyEntryPoint
             {
                 Console.WriteLine(e);
             }
-        }
     }
 }

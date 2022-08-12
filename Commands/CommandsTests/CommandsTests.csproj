@@ -18,6 +18,5 @@
     <ItemGroup>
         <ProjectReference Include="..\Fourier\Fourier.csproj"/>
         <ProjectReference Include="..\Utility\Utility.csproj"/>
-        <ProjectReference Include="..\VISA\VISA.csproj"/>
     </ItemGroup>
 </Project>

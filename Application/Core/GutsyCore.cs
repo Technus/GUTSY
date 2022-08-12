@@ -12,6 +12,25 @@ namespace GeneralUnifiedTestSystemYard.Core;
 
 public class GutsyCore
 {
+    /// <exception cref="IOException"></exception>
+    /// <exception cref="UnauthorizedAccessException"></exception>
+    /// <exception cref="SecurityException"></exception>
+    /// <exception cref="ExtensionException"></exception>
+    public GutsyCore()
+    {
+        Commands.LoadFromFolder("*GUTSY Command*");
+        Extensions.LoadFromFolder("*GUTSY Extension*");
+        foreach (var extension in Extensions.Values)
+            try
+            {
+                extension.Activate(this);
+            }
+            catch (Exception e)
+            {
+                throw new ExtensionException($"Failed to activate extension: {extension.Identifier}", e);
+            }
+    }
+
     /// <summary>
     ///     Sets state of the JSON converter, to be more human readable.
     ///     Also to enforce Naming Strategy to Camel Case and enums to strings.
@@ -35,27 +54,6 @@ public class GutsyCore
 
     public SortedDictionary<string, IGutsyCommand> Commands { get; } = new();
     public SortedDictionary<string, IGutsyModule> Extensions { get; } = new();
-
-    /// <exception cref="IOException"></exception>
-    /// <exception cref="UnauthorizedAccessException"></exception>
-    /// <exception cref="SecurityException"></exception>
-    /// <exception cref="ExtensionException"></exception>
-    public GutsyCore()
-    {
-        Commands.LoadFromFolder("*GUTSY Command*");
-        Extensions.LoadFromFolder("*GUTSY Extension*");
-        foreach (var extension in Extensions.Values)
-        {
-            try
-            {
-                extension.Activate(this);
-            }
-            catch (Exception e)
-            {
-                throw new ExtensionException($"Failed to activate extension: {extension.Identifier}", e);
-            }
-        }
-    }
 
     /// <summary>
     ///     Just a string wrapper for Process based on objects, allows direct JSON string IO.
@@ -84,9 +82,7 @@ public class GutsyCore
                     };
                 }
             else
-            {
                 response = Process(null);
-            }
         }
         else
         {

@@ -13,6 +13,14 @@ namespace GeneralUnifiedTestSystemYard.Core.EntryPoints.SOCK;
 public class GutsyServer : IGutsyEntryPoint
 {
     /// <summary>
+    ///     Default port number is 57526. The digits on top of GUTSY letters on QWERTY keyboard.
+    /// </summary>
+    internal const int DefaultPort = 57526;
+
+    internal const string DefaultHost = "127.0.0.1";
+    private GutsyCore _gutsy = null!;
+
+    /// <summary>
     ///     Sets state of the JSON converter, to be transferable.
     ///     Also to enforce Naming Strategy to Camel Case and enums to strings.
     /// </summary>
@@ -32,18 +40,11 @@ public class GutsyServer : IGutsyEntryPoint
             }
         }
     };
-    
-    /// <summary>
-    ///     Default port number is 57526. The digits on top of GUTSY letters on QWERTY keyboard.
-    /// </summary>
-    internal const int DefaultPort = 57526;
-    internal const string DefaultHost = "127.0.0.1";
 
-    public string Identifier => "SOCK";
-    private GutsyCore _gutsy = null!;
-    
     // Thread signal.
     private ManualResetEvent AllDone { get; } = new(false);
+
+    public string Identifier => "SOCK";
 
     /// <exception cref="SocketException"></exception>
     /// <exception cref="SecurityException"></exception>
@@ -55,8 +56,8 @@ public class GutsyServer : IGutsyEntryPoint
         _gutsy = gutsy;
         var settings = token?.ToObject<SocketSettings>();
         var port = settings?.Port ?? DefaultPort;
-        var ip = IPAddress.Parse(settings?.Address??DefaultHost);
-        
+        var ip = IPAddress.Parse(settings?.Address ?? DefaultHost);
+
         //var ipAddress = ip ?? Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(IPAddress.Parse(DefaultHost));
 
         // Create a TCP/IP socket.
@@ -118,7 +119,7 @@ public class GutsyServer : IGutsyEntryPoint
         // Retrieve the state object and the handler socket  
         // from the asynchronous state object.  
         if (result.AsyncState is not GutsyClientState state) return;
-        
+
         var handler = state.WorkSocket;
 
         // Read data from the client socket.
@@ -142,15 +143,20 @@ public class GutsyServer : IGutsyEntryPoint
         }
     }
 
-    private string Process(StringBuilder data) => _gutsy.ProcessJson(data.ToString(),JsonSerializerSettings);
+    private string Process(StringBuilder data)
+    {
+        return _gutsy.ProcessJson(data.ToString(), JsonSerializerSettings);
+    }
 
     /// <exception cref="SocketException"></exception>
     /// <exception cref="OverflowException"></exception>
-    private static void Send(Socket handler, byte[] data) =>
-        // Convert the string data to byte data using ASCII encoding.  
-        //var byteData = Encoding.ASCII.GetBytes(data);
+    private static void Send(Socket handler, byte[] data)
+    {
         // Begin sending the data to the remote device.  
+        //var byteData = Encoding.ASCII.GetBytes(data);
+        // Convert the string data to byte data using ASCII encoding.  
         handler.BeginSend(data, 0, data.Length, 0, SendCallback, handler);
+    }
 
     /// <exception cref="IOException"></exception>
     private static void SendCallback(IAsyncResult ar)

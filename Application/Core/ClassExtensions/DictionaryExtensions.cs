@@ -37,15 +37,9 @@ public static class DictionaryExtensions
 
         if (Directory.Exists(path))
         {
-            foreach (var file in Directory.EnumerateFiles(path, filter))
-            {
-                dictionary.LoadFromFile(file);
-            }
+            foreach (var file in Directory.EnumerateFiles(path, filter)) dictionary.LoadFromFile(file);
 
-            foreach (var dir in Directory.EnumerateDirectories(path))
-            {
-                LoadFromFolder(dictionary, filter, dir);
-            }
+            foreach (var dir in Directory.EnumerateDirectories(path)) LoadFromFolder(dictionary, filter, dir);
         }
     }
 
@@ -69,13 +63,11 @@ public static class DictionaryExtensions
         //Previously used Assembly.LoadFile(Path.GetFullPath(path)).GetExportedTypes(), Should fix issues with DI if ever any exists in this project
         foreach (var type in AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(path))
                      .GetExportedTypes())
-        {
             if (type.IsAssignableTo(typeof(T)) && !type.IsAbstract)
                 if (Activator.CreateInstance(type) is T thing)
                     dictionary.Add(thing.Identifier, thing);
-        }
     }
-    
+
     public static void LoadFromAssembly<T>(
         this IDictionary<string, T> dictionary,
         Assembly? assembly = null)
@@ -83,12 +75,9 @@ public static class DictionaryExtensions
     {
         assembly ??= Assembly.GetExecutingAssembly();
         foreach (var type in assembly.ExportedTypes)
-        {
             if (type.IsAssignableTo(typeof(T)) && !type.IsAbstract)
                 if (Activator.CreateInstance(type) is T thing)
                     dictionary.Add(thing.Identifier, thing);
-        }
-        
     }
 
     public static T? GetFirstByName<T>(this IDictionary<string, T> dictionary, string name) where T : IIdentifiable

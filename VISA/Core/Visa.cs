@@ -22,13 +22,11 @@ public class Visa
         DeviceResolvers.LoadFromFolder("*GUTSY VISA Device*");
 
         foreach (var managerSupplier in ManagerSuppliers.Values)
-        {
             if (managerSupplier.GetResourceManager() is { } resourceManager)
             {
                 ResourceManager = resourceManager;
                 break;
             }
-        }
 
         if (ResourceManager is null) throw new DllNotFoundException("Could not find a working VISA resource manager");
     }
@@ -56,7 +54,6 @@ public class Visa
     public IVisaHardware Open(string resource, AccessModes mode = AccessModes.None, int openTimeout = 1000)
     {
         foreach (var item in SessionResolvers)
-        {
             try
             {
                 var session = item.Value.ResolveSession(ResourceManager, resource);
@@ -67,7 +64,6 @@ public class Visa
                 Console.WriteLine(e);
                 throw;
             }
-        }
 
         return new Hardware(resource, resourceManager.Open(resource, mode, openTimeout));
     }
