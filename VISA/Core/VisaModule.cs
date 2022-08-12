@@ -5,7 +5,7 @@ namespace GeneralUnifiedTestSystemYard.Commands.VISA;
 
 public class VisaModule : IGutsyModule
 {
-    public Visa? Visa { get; set; }
+    private Visa Visa { get; set; } = null!;
 
     /// <exception cref="DllNotFoundException"></exception>
     /// <exception cref="IOException"></exception>
@@ -13,7 +13,7 @@ public class VisaModule : IGutsyModule
     /// <exception cref="System.Security.SecurityException"></exception>
     public void Activate(GutsyCore gutsy)
     {
-        Visa ??= new Visa();
+        Visa = new Visa();
     }
 
     public string Identifier => "VISA";

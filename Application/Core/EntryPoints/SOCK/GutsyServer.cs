@@ -10,15 +10,9 @@ using Newtonsoft.Json.Serialization;
 
 namespace GeneralUnifiedTestSystemYard.Core.EntryPoints.SOCK;
 
-public class GutsyServer : IGutsyEntryPoint
+public class GutsyServer
 {
-    /// <summary>
-    ///     Default port number is 57526. The digits on top of GUTSY letters on QWERTY keyboard.
-    /// </summary>
-    internal const int DefaultPort = 57526;
-
-    internal const string DefaultHost = "127.0.0.1";
-    private GutsyCore _gutsy = null!;
+    private readonly GutsyCore _gutsy;
 
     /// <summary>
     ///     Sets state of the JSON converter, to be transferable.
@@ -44,21 +38,14 @@ public class GutsyServer : IGutsyEntryPoint
     // Thread signal.
     private ManualResetEvent AllDone { get; } = new(false);
 
-    public string Identifier => "SOCK";
-
     /// <exception cref="SocketException"></exception>
     /// <exception cref="SecurityException"></exception>
     /// <exception cref="NotSupportedException"></exception>
     /// <exception cref="AbandonedMutexException"></exception>
     /// <exception cref="FormatException"></exception>
-    public void Start(GutsyCore gutsy, JToken? token)
+    public GutsyServer(GutsyCore gutsy, int port, IPAddress ip)
     {
         _gutsy = gutsy;
-        var settings = token?.ToObject<SocketSettings>();
-        var port = settings?.Port ?? DefaultPort;
-        var ip = IPAddress.Parse(settings?.Address ?? DefaultHost);
-
-        //var ipAddress = ip ?? Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(IPAddress.Parse(DefaultHost));
 
         // Create a TCP/IP socket.
         using var listener = new Socket(
