@@ -1,4 +1,4 @@
-﻿namespace GeneralUnifiedTestSystemYard.Core.Extension;
+﻿namespace GeneralUnifiedTestSystemYard.Core.Module;
 
 public interface IGutsyModule : IIdentifiable
 {

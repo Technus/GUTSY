@@ -2,13 +2,40 @@
 using GeneralUnifiedTestSystemYard.Core.ClassExtensions;
 using GeneralUnifiedTestSystemYard.Core.Command;
 using GeneralUnifiedTestSystemYard.Core.Exceptions;
-using GeneralUnifiedTestSystemYard.Core.Extension;
+using GeneralUnifiedTestSystemYard.Core.Module;
+using GeneralUnifiedTestSystemYard.Core.Numerics;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 
 namespace GeneralUnifiedTestSystemYard.Core;
 
 public class GutsyCore
 {
+    /// <summary>
+    ///     Sets state of the JSON converter, to be more human readable.
+    ///     Also to enforce Naming Strategy to Camel Case and enums to strings.
+    /// </summary>
+    public static JsonSerializerSettings JsonSerializerSettings { get; } = new()
+    {
+        Formatting = Formatting.Indented,
+        Converters =
+        {
+            new ComplexJsonConverter(),
+            new StringEnumConverter()
+        },
+        ContractResolver = new DefaultContractResolver
+        {
+            NamingStrategy = new CamelCaseNamingStrategy
+            {
+                ProcessDictionaryKeys = false
+            }
+        }
+    };
+
+    public SortedDictionary<string, IGutsyCommand> Commands { get; } = new();
+    public SortedDictionary<string, IGutsyModule> Extensions { get; } = new();
+
     /// <exception cref="IOException"></exception>
     /// <exception cref="UnauthorizedAccessException"></exception>
     /// <exception cref="SecurityException"></exception>
@@ -17,7 +44,7 @@ public class GutsyCore
     {
         Commands.LoadFromFolder("*GUTSY Command*");
         Extensions.LoadFromFolder("*GUTSY Extension*");
-        Extensions.Values.ForEach(extension =>
+        foreach (var extension in Extensions.Values)
         {
             try
             {
@@ -27,40 +54,49 @@ public class GutsyCore
             {
                 throw new ExtensionException($"Failed to activate extension: {extension.Identifier}", e);
             }
-        });
+        }
     }
-
-    public SortedDictionary<string, IGutsyCommand> Commands { get; } = new();
-    public SortedDictionary<string, IGutsyModule> Extensions { get; } = new();
 
     /// <summary>
     ///     Just a string wrapper for Process based on objects, allows direct JSON string IO.
     /// </summary>
-    /// <param name="requestString"></param>
+    /// <param name="requestJson"></param>
+    /// <param name="settings"></param>
     /// <returns></returns>
-    public string ProcessJson(string? requestString)
+    public string ProcessJson(string? requestJson, JsonSerializerSettings? settings = null)
     {
+        var serializationSettings = settings ?? JsonSerializerSettings;
         GutsyResponse response;
-        if (requestString != null && requestString.Trim().Length > 0)
-            try
-            {
-                var request = JsonConvert.DeserializeObject<GutsyRequest?>(requestString);
-                response = Process(request);
-            }
-            catch (Exception e)
-            {
-                response = new GutsyResponse
+        if (requestJson != null)
+        {
+            requestJson = requestJson.Trim();
+            if (requestJson.Length > 0)
+                try
                 {
-                    Exception = new RequestUndefinedException("Cannot parse request", e)
-                };
+                    var request = JsonConvert.DeserializeObject<GutsyRequest?>(requestJson, serializationSettings);
+                    response = Process(request);
+                }
+                catch (Exception e)
+                {
+                    response = new GutsyResponse
+                    {
+                        Exception = new RequestUndefinedException("Cannot parse request", e)
+                    };
+                }
+            else
+            {
+                response = Process(null);
             }
+        }
         else
+        {
             response = Process(null);
+        }
 
-        return JsonConvert.SerializeObject(response);
+        return JsonConvert.SerializeObject(response, serializationSettings);
     }
 
-    public GutsyResponse Process(GutsyRequest? request)
+    private GutsyResponse Process(GutsyRequest? request)
     {
         var response = new GutsyResponse();
         if (request == null) return response;

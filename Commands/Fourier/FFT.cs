@@ -30,7 +30,10 @@ public class Fft : IGutsyCommand
 
         var scale = Math.Sqrt(2) / input.LongLength; //AC to rms
 
-        for (int i = 1, len = pinOut.Length; i < len; i++) result.Add(JToken.FromObject(pinOut[i] * scale));
+        for (int i = 1, len = pinOut.Length; i < len; i++)
+        {
+            result.Add(JToken.FromObject(pinOut[i] * scale));
+        }
 
         return result;
     }

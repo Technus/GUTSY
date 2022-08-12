@@ -1,5 +1,5 @@
 ﻿using GeneralUnifiedTestSystemYard.Core;
-using GeneralUnifiedTestSystemYard.Core.Extension;
+using GeneralUnifiedTestSystemYard.Core.Module;
 
 namespace GeneralUnifiedTestSystemYard.Commands.VISA;
 
