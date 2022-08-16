@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Security;
@@ -8,6 +9,9 @@ namespace GeneralUnifiedTestSystemYard.Core.ClassExtensions;
 
 public static class DictionaryExtensions
 {
+    #if !DEBUG
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    #endif
     public static bool IsEmpty<T>(this ICollection<T> collection) => collection.Count == 0;
 
     /// <exception cref="IOException"></exception>
@@ -29,14 +33,7 @@ public static class DictionaryExtensions
                 path = ".";
             }
 
-        if (OperatingSystem.IsWindows())
-        {
-            if (!filter.ToLowerInvariant().EndsWith(".dll")) filter += ".dll";
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-            if (!filter.ToLowerInvariant().EndsWith(".so")) filter += ".so";
-        }
+        if (!filter.ToLowerInvariant().EndsWith(".dll")) filter += ".dll";//only load .NET *.dll, no need for *.so
 
         if (Directory.Exists(path))
         {
