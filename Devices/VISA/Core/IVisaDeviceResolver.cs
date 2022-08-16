@@ -4,7 +4,7 @@ namespace GeneralUnifiedTestSystemYard.Commands.VISA;
 
 public interface IVisaDeviceResolver : IIdentifiable
 {
-    bool CanConvert(IVisaHardware hardware);
+    bool CanResolve(IVisaHardware hardware);
 
     IVisaDevice? ResolveDevice(IVisaHardware hardware);
 }

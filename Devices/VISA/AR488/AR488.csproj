@@ -5,8 +5,13 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>GeneralUnifiedTestSystemYard.Commands.$(MSBuildProjectName.Replace(" ", ""))</RootNamespace>
-        <AssemblyName>$(MSBuildProjectName) GUTSY VISA Resource Manager</AssemblyName>
+        <AssemblyName>$(MSBuildProjectName) GUTSY VISA Session Resolver</AssemblyName>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.Management" Version="6.0.0"/>
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Core\VISA.csproj"/>
@@ -14,10 +19,7 @@
 
     <ItemGroup>
         <Reference Include="Ivi.Visa">
-            <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\IVI Foundation\VISA\Microsoft.NET\Framework32\v2.0.50727\VISA.NET Shared Components 5.11.0\Ivi.Visa.dll</HintPath>
-        </Reference>
-        <Reference Include="NationalInstruments.Visa">
-            <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\IVI Foundation\VISA\Microsoft.NET\Framework32\v4.0.30319\NI VISA.NET 21.5\NationalInstruments.Visa.dll</HintPath>
+            <HintPath>C:\Program Files (x86)\IVI Foundation\VISA\Microsoft.NET\Framework32\v2.0.50727\VISA.NET Shared Components 5.11.0\Ivi.Visa.dll</HintPath>
         </Reference>
     </ItemGroup>
 

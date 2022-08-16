@@ -2,11 +2,14 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Security;
+using GeneralUnifiedTestSystemYard.Core.Exceptions;
 
 namespace GeneralUnifiedTestSystemYard.Core.ClassExtensions;
 
 public static class DictionaryExtensions
 {
+    public static bool IsEmpty<T>(this ICollection<T> collection) => collection.Count == 0;
+
     /// <exception cref="IOException"></exception>
     /// <exception cref="UnauthorizedAccessException"></exception>
     /// <exception cref="SecurityException"></exception>
@@ -55,17 +58,26 @@ public static class DictionaryExtensions
     /// <exception cref="TypeLoadException"></exception>
     /// <exception cref="SecurityException"></exception>
     /// <exception cref="PathTooLongException"></exception>
-    public static void LoadFromFile<T>(
+    private static void LoadFromFile<T>(
         this IDictionary<string, T> dictionary,
         string path)
         where T : IIdentifiable
     {
-        //Previously used Assembly.LoadFile(Path.GetFullPath(path)).GetExportedTypes(), Should fix issues with DI if ever any exists in this project
+        //Previously used Assembly.LoadFile(Path.GetFullPath(path)).GetExportedTypes(),
+        //Should fix issues with DI if ever any exists in this project
         foreach (var type in AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(path))
                      .GetExportedTypes())
-            if (type.IsAssignableTo(typeof(T)) && !type.IsAbstract)
-                if (Activator.CreateInstance(type) is T thing)
-                    dictionary.Add(thing.Identifier, thing);
+            try
+            {
+                if (type.IsAssignableTo(typeof(T)) && !type.IsAbstract)
+                    if (Activator.CreateInstance(type) is T thing)
+                        dictionary.Add(thing.Identifier, thing);
+            }
+            catch (Exception e)
+            {
+                e = new DynamicLoadingException($"Failed to load: {type.ToStringFully()}", e);
+                Console.WriteLine(e);
+            }
     }
 
     public static void LoadFromAssembly<T>(
@@ -75,9 +87,17 @@ public static class DictionaryExtensions
     {
         assembly ??= Assembly.GetExecutingAssembly();
         foreach (var type in assembly.ExportedTypes)
-            if (type.IsAssignableTo(typeof(T)) && !type.IsAbstract)
-                if (Activator.CreateInstance(type) is T thing)
-                    dictionary.Add(thing.Identifier, thing);
+            try
+            {
+                if (type.IsAssignableTo(typeof(T)) && !type.IsAbstract)
+                    if (Activator.CreateInstance(type) is T thing)
+                        dictionary.Add(thing.Identifier, thing);
+            }
+            catch (Exception e)
+            {
+                e = new DynamicLoadingException($"Failed to load: {type.ToStringFully()}", e);
+                Console.WriteLine(e);
+            }
     }
 
     public static T? GetFirstByName<T>(this IDictionary<string, T> dictionary, string name) where T : IIdentifiable
