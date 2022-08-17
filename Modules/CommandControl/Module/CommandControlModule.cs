@@ -9,7 +9,7 @@ public class CommandControlModule : IGutsyModule
     
     public string Identifier => "Command control";
     
-    public void Activate(GutsyCore gutsy)
+    public void Activate(Gutsy gutsy)
     {
         CommandControl = new CommandControl();
     }

@@ -7,7 +7,7 @@ internal class Navigation3DModule : IGutsyModule
 {
     private Navigation3D Navigation3D { get; set; }
 
-    public void Activate(GutsyCore gutsy)
+    public void Activate(Gutsy gutsy)
     {
         Navigation3D = new Navigation3D();
     }

@@ -8,7 +8,7 @@ namespace GeneralUnifiedTestSystemYard.Commands.Tests;
 [TestClass]
 public class FftTests
 {
-    private GutsyCore Gutsy { get; } = new();
+    private Gutsy Gutsy { get; } = new();
 
     /// <exception cref="OverflowException"></exception>
     [TestMethod]
