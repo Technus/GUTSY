@@ -1,10 +1,9 @@
 ﻿using System.Numerics;
-using GeneralUnifiedTestSystemYard.Core;
-using GeneralUnifiedTestSystemYard.Core.ClassExtensions;
+using GeneralUnifiedTestSystemYard.ClassExtensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 
-namespace CommandsTests;
+namespace GeneralUnifiedTestSystemYard.Commands.Tests;
 
 [TestClass]
 public class IfftTests

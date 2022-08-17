@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <RootNamespace>GeneralUnifiedTestSystemYard.Tests</RootNamespace>
+        <RootNamespace>GeneralUnifiedTestSystemYard.$(MSBuildProjectName.Replace(" ", ""))</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
