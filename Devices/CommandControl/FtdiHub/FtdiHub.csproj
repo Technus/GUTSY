@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>FtdiHub</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Module\CommandControl.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="FtdiHubCommunication">
+        <HintPath>FtdiHubCommunication.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>

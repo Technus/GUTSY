@@ -3,25 +3,25 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core", "Application\Core\Core.csproj", "{1027CACC-D66F-4B6E-9B18-BD27E277B8F3}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Application", "Application", "{CD824CE8-DC68-4AFF-A9CD-A5A6F4DEE522}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utility", "Commands\Utility\Utility.csproj", "{6E9F8F00-E610-4EF8-BD43-C529883B0B89}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gutsy", "Application\Gutsy\Gutsy.csproj", "{1027CACC-D66F-4B6E-9B18-BD27E277B8F3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Application\Tests\Tests.csproj", "{51562518-6F44-4D9B-88E5-C53C922CB07A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Commands", "Commands", "{BEA67F2C-84AE-4CD4-BF96-8056F969E0D4}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Application", "Application", "{CD824CE8-DC68-4AFF-A9CD-A5A6F4DEE522}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utility", "Commands\Utility\Utility.csproj", "{6E9F8F00-E610-4EF8-BD43-C529883B0B89}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fourier", "Commands\Fourier\Fourier.csproj", "{86818C4D-ED57-4BE5-8169-545B682099F2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApplicationTests", "Application\ApplicationTests\ApplicationTests.csproj", "{51562518-6F44-4D9B-88E5-C53C922CB07A}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommandsTests", "Commands\CommandsTests\CommandsTests.csproj", "{3B3C31A6-99F9-46E3-B53B-C13D3FF9FFDB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Commands\Tests\Tests.csproj", "{3B3C31A6-99F9-46E3-B53B-C13D3FF9FFDB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Devices", "Devices", "{58943B0F-C4D5-4C5E-AC61-5BB509242ED0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VISA", "VISA", "{870BEE80-20BB-46CC-8907-AA1A59C2B1C6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VISA", "Devices\VISA\Core\VISA.csproj", "{FA9C81C8-FFC4-4F14-8A0D-2915A1868A3C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VISA", "Devices\VISA\Module\VISA.csproj", "{FA9C81C8-FFC4-4F14-8A0D-2915A1868A3C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NI VISA.NET 21.5", "Devices\VISA\NiVisa\NI VISA.NET 21.5.csproj", "{777D9B96-466C-4489-853B-AE278F9100C1}"
 EndProject
@@ -29,11 +29,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AR488", "Devices\VISA\AR488
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SpaceNavigator", "SpaceNavigator", "{AFA4616E-7FBF-488B-BA86-D39AD1FB7729}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpaceNavigator", "Devices\SpaceNavigator\SpaceNavigator.csproj", "{2E0EC69F-66C8-4670-BCCF-67D61126F8A2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpaceNavigator", "Devices\SpaceNavigator\Module\SpaceNavigator.csproj", "{2E0EC69F-66C8-4670-BCCF-67D61126F8A2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CommandControl", "CommandControl", "{C43E5DB3-75ED-4694-8866-EBD8AFFCB072}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandControl", "Devices\CommandControl\CommandControl.csproj", "{FA45AF05-32D0-4122-A71B-C93222A3A152}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandControl", "Devices\CommandControl\Module\CommandControl.csproj", "{FA45AF05-32D0-4122-A71B-C93222A3A152}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FtdiHub", "Devices\CommandControl\FtdiHub\FtdiHub.csproj", "{FBE60624-61ED-4806-9EE8-B2308F5D959C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -81,6 +83,10 @@ Global
 		{FA45AF05-32D0-4122-A71B-C93222A3A152}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA45AF05-32D0-4122-A71B-C93222A3A152}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA45AF05-32D0-4122-A71B-C93222A3A152}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBE60624-61ED-4806-9EE8-B2308F5D959C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBE60624-61ED-4806-9EE8-B2308F5D959C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBE60624-61ED-4806-9EE8-B2308F5D959C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBE60624-61ED-4806-9EE8-B2308F5D959C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -100,6 +106,7 @@ Global
 		{870BEE80-20BB-46CC-8907-AA1A59C2B1C6} = {58943B0F-C4D5-4C5E-AC61-5BB509242ED0}
 		{C43E5DB3-75ED-4694-8866-EBD8AFFCB072} = {58943B0F-C4D5-4C5E-AC61-5BB509242ED0}
 		{FA45AF05-32D0-4122-A71B-C93222A3A152} = {C43E5DB3-75ED-4694-8866-EBD8AFFCB072}
+		{FBE60624-61ED-4806-9EE8-B2308F5D959C} = {C43E5DB3-75ED-4694-8866-EBD8AFFCB072}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4F7F3853-8BD8-411D-AFA9-B6EBBF4F45AC}

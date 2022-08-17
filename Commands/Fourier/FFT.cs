@@ -1,5 +1,5 @@
 ﻿using FFTW.NET;
-using GeneralUnifiedTestSystemYard.Core.Command;
+using GeneralUnifiedTestSystemYard.Command;
 using Newtonsoft.Json.Linq;
 
 namespace GeneralUnifiedTestSystemYard.Commands.Fourier;

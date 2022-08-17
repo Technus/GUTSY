@@ -1,23 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
-        <RootNamespace>GeneralUnifiedTestSystemYard.Commands.$(MSBuildProjectName.Replace(" ", ""))</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <AssemblyName>$(MSBuildProjectName) GUTSY Commands</AssemblyName>
+        <RootNamespace>GeneralUnifiedTestSystemYard</RootNamespace>
+        <AssemblyName>GeneralUnifiedTestSystemYard</AssemblyName>
+        <OutputType>Exe</OutputType>
+        <StartupObject>GeneralUnifiedTestSystemYard.EntryPoints.GutsyStart</StartupObject>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FFT.COBS" Version="0.0.4" />
+        <PackageReference Include="Enums.NET" Version="4.0.0" />
         <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="6.0.5" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
         <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
         <PackageReference Include="NJsonSchema" Version="10.7.2" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\Application\GUTSY\GUTSY.csproj" />
     </ItemGroup>
 
 </Project>

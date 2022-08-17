@@ -9,11 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FFTW.NET" Version="1.0.1"/>
+        <PackageReference Include="FFTW.NET" Version="1.0.1" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Application\Core\Core.csproj"/>
+        <ProjectReference Include="..\..\Application\GUTSY\GUTSY.csproj" />
     </ItemGroup>
 
 </Project>

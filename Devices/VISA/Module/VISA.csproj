@@ -1,26 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>GeneralUnifiedTestSystemYard.Commands.$(MSBuildProjectName.Replace(" ", ""))</RootNamespace>
-        <AssemblyName>$(MSBuildProjectName) GUTSY VISA Session Resolver</AssemblyName>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AssemblyName>$(MSBuildProjectName) GUTSY Commands</AssemblyName>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="System.Management" Version="6.0.0"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\Module\VISA.csproj"/>
+        <ProjectReference Include="..\..\..\Application\GUTSY\GUTSY.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <Reference Include="Ivi.Visa">
             <HintPath>C:\Program Files (x86)\IVI Foundation\VISA\Microsoft.NET\Framework32\v2.0.50727\VISA.NET Shared Components 5.11.0\Ivi.Visa.dll</HintPath>
         </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Commands" />
     </ItemGroup>
 
 </Project>
